@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEARLS · Superseats TTC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#1d2440;
+    --ink-soft:#5a6280;
+    --paper:#f7f6f2;
+    --card:#ffffff;
+    --line:#e4e2da;
+    --amber:#e8a13a;
+    --amber-deep:#b97a1a;
+    --green:#2e7d5b;
+    --red:#b3452f;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+  h1,h2,h3,.brand{font-family:'Archivo',sans-serif}
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  header{
+    background:var(--ink);color:#fff;padding:0.9rem 1.4rem;
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.6rem;
+  }
+  .brand{font-weight:800;font-size:1.05rem;letter-spacing:0.04em}
+  .brand span{color:var(--amber)}
+  nav{display:flex;gap:0.4rem;flex-wrap:wrap}
+  nav button{
+    background:transparent;border:1px solid rgba(255,255,255,0.25);color:#fff;
+    padding:0.45rem 0.95rem;border-radius:999px;font:inherit;font-size:0.85rem;cursor:pointer;
+  }
+  nav button.active{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:600}
+  nav button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+  main{max-width:960px;margin:0 auto;padding:1.6rem 1.2rem 4rem}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.3rem;margin-bottom:1.1rem}
+  .muted{color:var(--ink-soft);font-size:0.88rem}
+  .hidden{display:none !important}
+  .error-banner{background:#fbeae5;border:1px solid #e8c4b8;color:var(--red);border-radius:8px;padding:0.6rem 0.9rem;font-size:0.85rem;margin-bottom:1rem}
+
+  /* login */
+  .login-wrap{max-width:400px;margin:2.5rem auto}
+  .field{margin-top:1rem}
+  .field label{display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em}
+  .field select,.field input{width:100%;padding:0.65rem 0.75rem;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+  .field select:focus-visible,.field input:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+  .btn{display:inline-block;border:none;border-radius:8px;cursor:pointer;font:inherit;font-weight:600;padding:0.7rem 1.2rem}
+  .btn-primary{background:var(--ink);color:#fff}
+  .btn-primary:hover{background:#2a3357}
+  .btn-block{width:100%;margin-top:1.2rem}
+  .btn-small{padding:0.45rem 0.85rem;font-size:0.85rem}
+  .btn-quiet{background:#efede7;color:var(--ink)}
+  .error-msg{color:var(--red);font-size:0.85rem;margin-top:0.7rem;min-height:1.1em}
+  .ok-msg{color:var(--green);font-size:0.85rem;margin-top:0.7rem;min-height:1.1em}
+
+  /* shift bar */
+  .shift-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.9rem}
+  .shift-status{display:flex;align-items:center;gap:0.7rem}
+  .dot{width:12px;height:12px;border-radius:50%;background:#c9c6bc;flex-shrink:0}
+  .dot.on{background:var(--amber);box-shadow:0 0 0 4px rgba(232,161,58,0.25)}
+  .shift-label{font-weight:700}
+  .switch{position:relative;width:58px;height:30px;border-radius:999px;background:#d8d5cc;border:none;cursor:pointer;transition:background 0.15s;flex-shrink:0}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left 0.15s;box-shadow:0 1px 3px rgba(0,0,0,0.25)}
+  .switch[aria-checked="true"]{background:var(--amber)}
+  .switch[aria-checked="true"]::after{left:31px}
+  .switch:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .day-total{text-align:right}
+  .day-total .mono{font-size:1.5rem;font-weight:600}
+
+  /* tasks */
+  .task-list{display:flex;flex-direction:column;gap:0.45rem;margin-top:0.9rem}
+  .task-row{display:flex;align-items:center;justify-content:space-between;gap:0.8rem;background:#fff;border:1px solid var(--line);border-radius:8px;padding:0.6rem 0.85rem}
+  .task-row.running{border-color:var(--amber);background:#fdf6ea}
+  .task-name{font-size:0.92rem;font-weight:500}
+  .task-side{display:flex;align-items:center;gap:0.8rem}
+  .task-time{font-size:0.92rem;color:var(--ink-soft);min-width:88px;text-align:right}
+  .task-row.running .task-time{color:var(--amber-deep);font-weight:600}
+  .tasks-disabled{opacity:0.45;pointer-events:none}
+
+  /* dashboard */
+  .filters{display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;margin-bottom:1.1rem}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:0.42rem 0.95rem;font:inherit;font-size:0.85rem;cursor:pointer}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .custom-range{display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap}
+  .custom-range input{padding:0.4rem 0.5rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:0.85rem}
+  .range-label{font-size:0.85rem;color:var(--ink-soft);width:100%;margin-top:0.3rem}
+
+  .admin-card{cursor:pointer}
+  .admin-head{display:flex;align-items:center;justify-content:space-between;gap:0.8rem}
+  .admin-name{font-size:1.05rem;font-weight:700}
+  .admin-hours{font-size:1.35rem;font-weight:600}
+  .admin-sub{font-size:0.8rem;color:var(--ink-soft);margin-top:0.15rem}
+  .caret{transition:transform 0.15s;color:var(--ink-soft)}
+  .admin-card.open .caret{transform:rotate(90deg)}
+  .breakdown{margin-top:1rem;border-top:1px dashed var(--line);padding-top:0.9rem}
+  .breakdown h4, .report-sub{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:0.5rem}
+  table{width:100%;border-collapse:collapse;font-size:0.88rem}
+  th,td{text-align:left;padding:0.42rem 0.3rem;border-bottom:1px solid var(--line)}
+  th{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);font-weight:600}
+  td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace}
+  .empty{color:var(--ink-soft);font-size:0.88rem;padding:0.6rem 0}
+
+  /* productivity % */
+  .pct-row{display:flex;align-items:center;gap:0.8rem;margin-top:0.6rem}
+  .pct-name{width:90px;font-weight:600;font-size:0.9rem;flex-shrink:0}
+  .pct-bar-wrap{flex:1;height:12px;background:#efede7;border-radius:999px;overflow:hidden}
+  .pct-bar{height:100%;background:var(--amber);border-radius:999px}
+  .pct-bar.full{background:var(--green)}
+  .pct-val{width:64px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;flex-shrink:0}
+  .team-pct{font-size:2.2rem;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .team-pct.goal-hit{color:var(--green)}
+
+  /* sales */
+  .sales-hero{display:flex;gap:2rem;flex-wrap:wrap;margin:0.7rem 0 1rem}
+  .sales-big{font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .delta-up{color:var(--green);font-weight:600}
+  .delta-down{color:var(--red);font-weight:600}
+
+  /* knowledge base */
+  mark{background:#fbe9c6;color:inherit;padding:0 2px;border-radius:3px}
+  .kb-hit{border-top:1px solid var(--line);padding:0.85rem 0}
+  .kb-hit:first-child{border-top:none;padding-top:0.2rem}
+  .kb-snippet{font-size:0.9rem;margin:0.35rem 0;white-space:pre-line;color:var(--ink)}
+  .kb-answer{font-size:0.94rem;line-height:1.55;margin:0.5rem 0;white-space:pre-line;color:var(--ink)}
+  .kb-top{background:#fbfaf7;border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem}
+  .kb-top .kb-answer{font-size:1rem}
+  .kb-cat{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;background:#efede7;border-radius:999px;padding:0.2rem 0.6rem;color:var(--ink-soft)}
+
+  /* collapsible section headers */
+  .collapse-head{cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+  .collapse-head .caret{transition:transform 0.15s;color:var(--ink-soft);font-size:0.8rem}
+  .collapse-head.open .caret{transform:rotate(90deg)}
+
+  /* settings */
+  .settings-grid{display:flex;flex-direction:column;gap:0.7rem;margin-top:0.8rem}
+  .archive-row{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap}
+  .archive-row input[type=number]{width:90px}
+  .archive-row input[type=url]{flex:1;min-width:220px}
+  .archive-row input{padding:0.5rem 0.6rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:0.85rem}
+
+  .logout-row{display:flex;justify-content:flex-end;gap:0.8rem;margin-bottom:0.8rem;align-items:center}
+  .link-btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:0.85rem;cursor:pointer;text-decoration:underline}
+
+  @media (max-width:560px){
+    .day-total{text-align:left}
+    .admin-hours{font-size:1.1rem}
+    .pct-name{width:74px}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
+  .mark-prod{border:1px solid var(--line);background:#fff;border-radius:6px;padding:1px 7px;font-size:0.72rem;color:var(--ink-soft);cursor:pointer;white-space:nowrap;flex:none}
+  .mark-prod:hover{background:#e8f5ee;border-color:#bfe0cb;color:#1f6b43}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand" style="display:flex;align-items:center;gap:10px"><img src="data:image/png;base64,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" alt="Superseats" style="height:26px;display:block;border-radius:4px"><span style="color:var(--amber);font-weight:600">PEARLS</span></div>
+  <nav>
+    <button id="navDash" class="active" data-view="dash">Team Productivity</button>
+    <button id="navSales" data-view="sales">Sales Report</button>
+    <button id="navKB" data-view="kb">Knowledge Base</button>
+    <button id="navAdmin" data-view="admin">Admin Login</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ================= PUBLIC DASHBOARD ================= -->
+  <section id="viewDash">
+    <h2 style="margin-bottom:0.3rem">Team Productivity</h2>
+    <p class="muted" style="margin-bottom:1.1rem">Productivity is private — sign in to see your report. Managers see the whole team.</p>
+
+    <div id="dashError"></div>
+
+    <div class="filters" role="group" aria-label="Date range">
+      <button class="chip active" data-range="day">Today</button>
+      <button class="chip" data-range="week">This Week</button>
+      <button class="chip" data-range="month">This Month</button>
+      <button class="chip" data-range="custom">Custom</button>
+      <div class="custom-range hidden" id="customRange">
+        <input type="date" id="fromDate" aria-label="From date">
+        <span class="muted">to</span>
+        <input type="date" id="toDate" aria-label="To date">
+        <button class="chip" id="applyCustom">Apply</button>
+      </div>
+      <div class="range-label" id="rangeLabel"></div>
+    </div>
+
+    <!-- Productivity report -->
+    <div class="card">
+      <h3>Productivity Report</h3>
+      <p class="muted">Goal: 7h 30m of task time per working day = 100%.</p>
+      <div style="display:flex;align-items:baseline;gap:0.8rem;margin-top:0.6rem">
+        <div class="team-pct" id="teamPct">—</div>
+        <div class="muted" id="teamPctLabel">team productivity for this range</div>
+      </div>
+      <div id="pctRows" style="margin-top:0.8rem"></div>
+    </div>
+
+    <!-- Team overall report (managers only) -->
+    <div class="card hidden" id="teamOverallCard">
+      <h3 class="collapse-head open" data-collapse="teamOverallBody">Team Overall Report <span class="caret">▶</span></h3>
+      <div id="teamOverallBody"></div>
+    </div>
+
+    <!-- Unproductive sites to review (managers only) -->
+    <div class="card hidden" id="reviewSitesCard">
+      <h3 class="collapse-head open" data-collapse="reviewSitesBody">Unproductive sites to review <span class="caret">▶</span></h3>
+      <div id="reviewSitesBody">
+        <div class="muted" style="font-size:0.86rem;margin-bottom:0.5rem">Sites the team spent time on that currently count as unproductive. If any belong under productive work, mark them — it saves for everyone, right away.</div>
+        <div id="reviewSitesList"></div>
+      </div>
+    </div>
+
+    <!-- Admin hour cards (website activity lives inside each card) -->
+    <div id="adminCards"></div>
+
+  </section>
+
+  <!-- ================= SALES REPORT ================= -->
+  <section id="viewSales" class="hidden">
+    <h2 style="margin-bottom:0.3rem">Sales Report</h2>
+    <p class="muted" style="margin-bottom:1.1rem">Sold listings and finalized revenue, straight from the sales sheets. Click a section title to minimize or expand it.</p>
+
+    <div class="filters" role="group" aria-label="Sales date range">
+      <button class="chip active" data-srange="all">All Months</button>
+      <button class="chip" data-srange="month">This Month</button>
+      <button class="chip" data-srange="3mo">Last 3 Months</button>
+      <button class="chip" data-srange="custom">Custom</button>
+      <div class="custom-range hidden" id="salesCustom">
+        <input type="month" id="salesFrom" aria-label="From month">
+        <span class="muted">to</span>
+        <input type="month" id="salesTo" aria-label="To month">
+        <button class="chip" id="applySalesCustom">Apply</button>
+      </div>
+      <div class="range-label" id="salesRangeLabel"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="collapse-head open" data-collapse="salesBody">Monthly Performance <span class="caret">▶</span></h3>
+      <div id="salesBody"><div class="empty">Loading sales data…</div></div>
+    </div>
+    <div class="card">
+      <h3 class="collapse-head open" data-collapse="marketBody">By Marketplace <span class="caret">▶</span></h3>
+      <div id="marketBody"><div class="empty">Loading marketplace data…</div></div>
+    </div>
+  </section>
+
+  <!-- ================= KNOWLEDGE BASE ================= -->
+  <section id="viewKB" class="hidden">
+    <h2 style="margin-bottom:0.3rem">Knowledge Base</h2>
+    <p class="muted" style="margin-bottom:1.1rem">Search the team's training documents to verify processes, workflows, and day-to-day steps.</p>
+    <div id="kbGate" class="card hidden">
+      <div class="empty" style="margin-bottom:0.6rem">The knowledge base is for the team — sign in to search it.</div>
+      <button class="btn btn-primary btn-small" id="goLoginKB">Go to Admin Login</button>
+    </div>
+    <div id="kbMain" class="hidden">
+      <div class="filters" id="kbCats" role="group" aria-label="Categories"></div>
+      <div class="card">
+        <div class="archive-row">
+          <input type="text" id="kbQuery" placeholder="Ask about a process — e.g. rescheduled event seller payment" style="flex:1;min-width:220px">
+          <button class="btn btn-primary btn-small" id="kbSearchBtn">Search</button>
+        </div>
+        <div id="kbResults" style="margin-top:1rem"><div class="empty">Type a question to search the training docs.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ADMIN LOGIN ================= -->
+  <section id="viewLogin" class="hidden">
+    <div class="card login-wrap">
+      <h2>Admin Login</h2>
+      <p class="muted">Sign in to start your shift and track tasks.</p>
+      <div class="field">
+        <label for="loginAdmin">Admin</label>
+        <select id="loginAdmin"></select>
+      </div>
+      <div class="field">
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-block" id="loginBtn">Sign in</button>
+      <div class="error-msg" id="loginError"></div>
+      <div style="margin-top:0.6rem"><button class="link-btn" id="forgotBtn">Forgot password?</button></div>
+      <div id="forgotMsg" class="muted" style="margin-top:0.4rem"></div>
+    </div>
+
+    <div class="card login-wrap hidden" id="changePwCard" style="margin-top:1rem">
+      <h2>Set a new password</h2>
+      <p class="muted">Before continuing, please set your own password. It must be 8–15 characters with an uppercase letter, a lowercase letter, a number, and a special character.</p>
+      <div class="field">
+        <label for="newPw1">New password</label>
+        <input type="password" id="newPw1" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="newPw2">Confirm new password</label>
+        <input type="password" id="newPw2" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary btn-block" id="savePwBtn">Save password</button>
+      <div class="error-msg" id="changePwError"></div>
+    </div>
+  </section>
+
+  <!-- ================= ADMIN WORKSPACE ================= -->
+  <section id="viewAdmin" class="hidden">
+    <div class="logout-row">
+      <button class="link-btn" id="logoutBtn">Sign out</button>
+    </div>
+
+    <div class="card hidden" id="untrackedNote">
+      <div class="empty">This account has manager access only — productivity tracking is off for it. Use the Team Productivity tab to view the team.</div>
+    </div>
+
+    <div class="card shift-bar">
+      <div class="shift-status">
+        <div class="dot" id="shiftDot"></div>
+        <div>
+          <div class="shift-label" id="shiftWho"></div>
+          <div class="muted" id="shiftState">Inactive — off shift</div>
+        </div>
+      </div>
+      <button class="switch" id="shiftSwitch" role="switch" aria-checked="false" aria-label="Toggle shift"></button>
+      <div class="day-total">
+        <div class="muted">Worked today</div>
+        <div class="mono" id="todayTotal">0h 00m 00s</div>
+      </div>
+      <div class="muted" style="width:100%;font-size:0.75rem">Presence is recorded while you're on shift. Keep this tab open — closing it ends your shift automatically after a few minutes.</div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:0.2rem">Daily Tasks</h3>
+      <p class="muted" id="taskHint">Go active on your shift to start tracking tasks.</p>
+      <div class="task-list" id="taskList"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:0.6rem">My Shift Log <span class="muted" style="font-weight:400">(last 14 days)</span></h3>
+      <div id="myLog"></div>
+    </div>
+
+    <!-- Owner-only settings -->
+    <div class="card hidden" id="ownerPanel">
+      <h3>Report Settings <span class="muted" style="font-weight:400">(managers only)</span></h3>
+      <p class="muted">These links feed the public sales report. Only your account can see or change them.</p>
+      <div class="settings-grid">
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Team members</label>
+          <div id="teamList"></div>
+          <div class="archive-row" style="margin-top:0.5rem">
+            <input type="text" id="newName" placeholder="Name">
+            <input type="text" id="newEmail" placeholder="Email">
+            <input type="text" id="newPass" placeholder="Password (min 6)">
+            <select id="newTracked" style="padding:0.5rem 0.6rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:0.85rem">
+              <option value="true">Tracks productivity</option>
+              <option value="false">Manager access only</option>
+            </select>
+            <button class="btn btn-quiet btn-small" id="addAdminBtn">Add admin</button>
+          </div>
+          <div class="muted" style="margin-top:0.3rem">Removing deactivates the login and hides them from dashboards — their logged hours stay saved, and you can reactivate anytime.</div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Temporary passwords (from “Forgot password”)</label>
+          <div id="tempPwList"></div>
+          <div class="muted" style="margin-top:0.3rem">When a teammate clicks “Forgot password”, their temporary password appears here. Give it to them privately — they'll be required to set their own on next sign-in, and it disappears from this list once they do.</div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Daily tasks</label>
+          <div id="taskAdminList" style="max-height:200px;overflow:auto"></div>
+          <div class="archive-row" style="margin-top:0.5rem">
+            <input type="text" id="taskNewName" placeholder="New task name">
+            <button class="btn btn-quiet btn-small" id="taskAddBtn">Add task</button>
+          </div>
+          <div class="muted" style="margin-top:0.3rem">New tasks appear above Other Projects. Removing a task hides it from the list but keeps all hours already logged under it. Seller's Email and Other Projects can't be removed.</div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Knowledge base documents</label>
+          <div id="kbAdminList"></div>
+          <div class="archive-row" style="margin-top:0.5rem">
+            <input type="url" id="kbNewUrl" placeholder="Google Doc link">
+            <input type="text" id="kbNewTitle" placeholder="Title">
+            <input type="text" id="kbNewCat" placeholder="Category">
+            <button class="btn btn-quiet btn-small" id="kbAddBtn">Add doc</button>
+          </div>
+          <div style="margin-top:0.5rem"><button class="btn btn-quiet btn-small" id="kbSyncBtn">Sync knowledge base</button></div>
+          <div class="muted" style="margin-top:0.3rem">Docs must be link-shared (Anyone with the link → Viewer). After adding or editing docs, run a sync to re-index the search.</div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Website classification</label>
+          <div id="siteRulesList" style="max-height:180px;overflow:auto"></div>
+          <div class="archive-row" style="margin-top:0.5rem">
+            <input type="text" id="ruleNewDomain" placeholder="domain, e.g. example.com">
+            <select id="ruleNewKind" style="padding:0.5rem 0.6rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:0.85rem">
+              <option value="true">Productive</option>
+              <option value="false">Unproductive</option>
+            </select>
+            <button class="btn btn-quiet btn-small" id="ruleAddBtn">Add rule</button>
+          </div>
+          <div class="muted" style="margin-top:0.3rem">Domains with no rule count as unproductive. Rules also match subdomains.</div>
+        </div>
+        <div class="field" style="margin-top:0.4rem">
+          <label for="salesUrl">Working sales sheet URL</label>
+          <input type="url" id="salesUrl">
+        </div>
+        <div class="field" style="margin-top:0">
+          <label for="salesYear">Sales sheet year</label>
+          <input type="number" id="salesYear" style="width:120px">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Archive sheets (finalized revenue)</label>
+          <div id="archiveRows"></div>
+          <button class="btn btn-quiet btn-small" id="addArchive" style="margin-top:0.5rem">+ Add year (e.g. 2027 archive)</button>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em">Update a teammate's login credentials</label>
+          <div class="archive-row">
+            <select id="resetWho" style="padding:0.5rem 0.6rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:0.85rem"></select>
+            <input type="text" id="resetEmail" placeholder="New email (optional)">
+            <input type="text" id="resetPass" placeholder="New password (optional, min 6)">
+            <button class="btn btn-quiet btn-small" id="resetBtn">Update credentials</button>
+          </div>
+          <div class="muted" style="margin-top:0.3rem">Only your account can change logins. Fill either field or both — passwords are stored encrypted and can never be viewed.</div>
+        </div>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.4rem">
+          <button class="btn btn-primary btn-small" id="saveSettings">Save settings</button>
+          <button class="btn btn-quiet btn-small" id="refreshSales">Refresh sales data now</button>
+        </div>
+        <div class="ok-msg" id="settingsMsg"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ================= CONFIG ================= */
+const SUPABASE_URL = "https://fpwligkliiqzydtfhqav.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwd2xpZ2tsaWlxenlkdGZocWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTY3MDUsImV4cCI6MjA5OTc5MjcwNX0.Hs-XCHh7GNGyEZpCCkSarYCVEwksvLqvKYOYB7y-nOM";
+const GOAL_MS = 7.5 * 3600000; // 7h30m = 100%
+
+let TASKS = [
+  "Seller's Email",
+  "Pending listing (non-tagged)",
+  "Pending listing (tagged)",
+  "Payments",
+  "Priorities",
+  "FCF follow up",
+  "Tracking of New sales",
+  "Buyer's email",
+  "Chat Support",
+  "Price Suggestion",
+  "Payment/Order Error follow up",
+  "Phone support (buyer side)",
+  "Phone support (seller side)",
+  "Market Payments",
+  "Team meeting/huddles",
+  "Other Projects"
+];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ================= STATE ================= */
+let admins = [];            // [{id,name,email,is_owner}]
+let liveStates = {};        // adminId -> live_state row
+let rangeSessions = [];     // sessions fetched for current dashboard range
+let mySessions = [];        // my sessions, last 14 days
+let me = null;              // my admin profile row
+let salesData = null;
+let awayStats = {};    // admin_id -> {timer_minutes, present_minutes}
+let recentBeats = {};  // admin_id -> ms timestamp of last heartbeat
+let siteStats = [];    // rows from site_stats RPC for the dashboard range
+let appStats = [];     // rows from app_stats RPC for the dashboard range
+let rangeOtherProjects = []; // other_projects rows for the dashboard range
+let myOtherProjects = [];    // my entries for today
+let myStars = new Set();     // my pinned tasks for today
+let waOpen = new Set();      // open productive/unproductive site sections
+let cardSecOpen = new Set(); // open sections inside admin cards
+let lastTabActivity = Date.now();
+let range = {type:"day", from:startOfDay(new Date()), to:endOfDay(new Date())};
+const openCards = new Set();
+let currentView = "dash";
+
+/* ================= HELPERS ================= */
+function fmt(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return h + "h " + String(m).padStart(2,"0") + "m " + String(sec).padStart(2,"0") + "s";
+}
+function fmtHours(ms){ return (Math.round(ms/36000)/100).toFixed(2); }
+function fmtMoney(n){ return "$" + Number(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function dateKey(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function niceDate(key){
+  const [y,m,d] = key.split("-").map(Number);
+  return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+}
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+function endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x.getTime(); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* clip sessions + live task into [from,to]; returns {total, perTask, perDay} */
+function fmtClock(ts){
+  if(!ts) return "";
+  try{
+    return new Date(ts).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  }catch(e){ return ""; }
+}
+function fmtTimeRange(a, b){
+  const s1 = fmtClock(a), s2 = fmtClock(b);
+  if(!s1 && !s2) return "";
+  if(s1 === s2 || !s2) return s1;
+  return s1 + "–" + s2;
+}
+function taskDisplay(t){
+  if(!t) return t;
+  return t.indexOf("Other Projects: ")===0 ? (t.slice("Other Projects: ".length) + " (project)") : t;
+}
+function aggregate(adminId, sessions, from, to){
+  let total = 0; const perTask = {}; const perDay = {};
+  const add = (start, end, task)=>{
+    let a = Math.max(start, from), b = Math.min(end, to);
+    if(b<=a) return;
+    total += b-a;
+    perTask[task] = (perTask[task]||0) + (b-a);
+    let cur = a;
+    while(cur < b){
+      const dayEnd = endOfDay(new Date(cur)) + 1;
+      const chunk = Math.min(dayEnd, b) - cur;
+      const k = dateKey(cur);
+      perDay[k] = (perDay[k]||0) + chunk;
+      cur += chunk;
+    }
+  };
+  sessions.forEach(s=>{
+    if(s.admin_id!==adminId) return;
+    add(new Date(s.started_at).getTime(), new Date(s.ended_at).getTime(), s.task);
+  });
+  const st = liveStates[adminId];
+  if(st && st.task && st.task_started_at){
+    add(new Date(st.task_started_at).getTime(), Date.now(), st.task);
+  }
+  return {total, perTask, perDay};
+}
+
+/* ================= DATA LOADING ================= */
+function activeAdmins(){ return admins.filter(a=>a.active!==false); }
+function isPrivileged(){ return !!(me && (me.is_owner || me.privileged)); }
+function visibleAdmins(){ return !me ? [] : (isPrivileged() ? activeAdmins() : activeAdmins().filter(a=>a.id===me.id)); }
+function prodAdmins(){ return visibleAdmins().filter(a=>a.tracked!==false); }
+function trackedAdmins(){ return activeAdmins().filter(a=>a.tracked!==false); }
+async function loadAdmins(){
+  const {data, error} = await sb.from("admins").select("*").order("name");
+  if(error) throw error;
+  admins = data;
+  const sel = document.getElementById("loginAdmin");
+  sel.innerHTML = activeAdmins().map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join("");
+}
+async function loadLive(){
+  const {data, error} = await sb.from("live_state").select("*");
+  if(error) throw error;
+  liveStates = {};
+  (data||[]).forEach(r=>{ liveStates[r.admin_id] = r; });
+}
+async function loadRangeSessions(){
+  const {data, error} = await sb.from("sessions").select("*")
+    .lte("started_at", new Date(range.to).toISOString())
+    .gte("ended_at", new Date(range.from).toISOString());
+  if(error) throw error;
+  rangeSessions = data || [];
+}
+async function loadMySessions(){
+  if(!me) return;
+  const from = startOfDay(new Date(Date.now() - 13*86400000));
+  const {data, error} = await sb.from("sessions").select("*")
+    .eq("admin_id", me.id)
+    .gte("ended_at", new Date(from).toISOString());
+  if(error) throw error;
+  mySessions = data || [];
+}
+async function loadSales(force){
+  try{
+    const url = SUPABASE_URL + "/functions/v1/sales-report" + (force ? "?refresh=1" : "");
+    const res = await fetch(url, {headers:{ "Authorization":"Bearer "+SUPABASE_ANON_KEY, "apikey":SUPABASE_ANON_KEY }});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    salesData = await res.json();
+  }catch(e){
+    salesData = {months:[], marketplaces:[], errors:["fetch_failed"]};
+  }
+  renderSales();
+  renderMarkets();
+}
+function renderMarkets(){
+  const el = document.getElementById("marketBody");
+  if(!el) return;
+  if(!salesData){ el.innerHTML = `<div class="empty">Loading marketplace data…</div>`; return; }
+  const mm = (salesData.market_months||[]).filter(inSalesRange);
+  if(!mm.length){ el.innerHTML = `<div class="empty">No marketplace data in this range.</div>`; return; }
+  const agg = {};
+  mm.forEach(x=>{
+    const k = (x.name||"(blank)").toLowerCase();
+    if(!agg[k]) agg[k] = {name: x.name||"(blank)", listings: 0, revenue: 0, hasRev: false};
+    agg[k].listings += x.listings||0;
+    if(x.revenue!=null){ agg[k].revenue += x.revenue; agg[k].hasRev = true; }
+  });
+  const mkts = Object.values(agg).sort((a,b)=>b.listings-a.listings);
+  mkts.forEach((m,i)=>{ m.color = MK_PALETTE[i % MK_PALETTE.length]; });
+  const SHORT_LABELS = {"ticketnetwork":"TN", "internal purchase":"IP", "seatgeekdirect":"Seatgeek"};
+  const shortName = (n)=> SHORT_LABELS[n.toLowerCase()] || n;
+
+  const listingItems = mkts.filter(m=>m.listings > 0)
+    .map(m=>({name: shortName(m.name), value: m.listings, color: m.color}));
+  const revItems = mkts.filter(m=>m.hasRev && Math.round(m.revenue*100)/100 !== 0)
+    .sort((a,b)=>b.revenue-a.revenue)
+    .map(m=>({name: shortName(m.name), value: Math.round(m.revenue*100)/100, color: m.color}));
+
+  el.innerHTML = `<p class="muted" style="margin-bottom:0.6rem">Sold listings and finalized revenue per marketplace (column B) for the selected range. Each marketplace keeps its own color across both graphs.</p>
+    <div class="report-sub">Sold listings by marketplace</div>` +
+    vBarChart(listingItems, v=>v.toLocaleString()) +
+    `<div class="report-sub" style="margin-top:1.1rem">Finalized revenue by marketplace</div>` +
+    (revItems.length ? vBarChart(revItems, v=>fmtMoney(v)) : `<div class="empty">Awaiting finalized data.</div>`);
+}
+
+/* ================= PRESENCE ================= */
+function currentMinuteIso(){
+  const d = new Date(); d.setSeconds(0,0); return d.toISOString();
+}
+async function sendHeartbeat(){
+  if(!me || me.tracked === false) return;
+  if(Date.now() - lastTabActivity > 185000) return; // idle: no activity in this tab for over 3 minutes
+  const st = liveStates[me.id];
+  if(!st || !st.on_shift) return;
+  try{
+    await sb.from("heartbeats").upsert(
+      {admin_id: me.id, minute_at: currentMinuteIso()},
+      {onConflict: "admin_id,minute_at", ignoreDuplicates: true}
+    );
+  }catch(e){ /* best effort */ }
+}
+async function loadPresence(){
+  try{
+    const {data} = await sb.rpc("away_stats", {
+      from_ts: new Date(range.from).toISOString(),
+      to_ts: new Date(range.to).toISOString()
+    });
+    awayStats = {};
+    (data||[]).forEach(r=>{ awayStats[r.admin_id] = r; });
+    const {data: beats} = await sb.from("heartbeats").select("admin_id,minute_at")
+      .gte("minute_at", new Date(Date.now() - 10*60000).toISOString());
+    recentBeats = {};
+    (beats||[]).forEach(b=>{
+      const t = new Date(b.minute_at).getTime();
+      if(!recentBeats[b.admin_id] || t > recentBeats[b.admin_id]) recentBeats[b.admin_id] = t;
+    });
+  }catch(e){ /* transient */ }
+}
+
+async function loadSiteStats(){
+  try{
+    const {data} = await sb.rpc("site_stats", {
+      from_ts: new Date(range.from).toISOString(),
+      to_ts: new Date(range.to).toISOString()
+    });
+    siteStats = data || [];
+  }catch(e){ /* transient */ }
+  try{
+    const {data} = await sb.rpc("app_stats", {
+      from_ts: new Date(range.from).toISOString(),
+      to_ts: new Date(range.to).toISOString()
+    });
+    appStats = data || [];
+  }catch(e){ /* transient */ }
+}
+async function loadRangeOtherProjects(){
+  try{
+    const {data} = await sb.from("other_projects").select("*")
+      .gte("day", dateKey(range.from)).lte("day", dateKey(range.to));
+    rangeOtherProjects = data || [];
+  }catch(e){ /* transient */ }
+}
+function unprodMsFor(adminId){
+  return siteStats.filter(r=>r.admin_id===adminId && !r.productive)
+    .reduce((a,r)=>a + Number(r.minutes), 0) * 60000;
+}
+function trackedMsFor(adminId){
+  return siteStats.filter(r=>r.admin_id===adminId)
+    .reduce((a,r)=>a + Number(r.minutes), 0) * 60000;
+}
+
+// Aggregate unproductive sites across everyone visible (managers only), for one-click review.
+function renderReviewSites(){
+  const card = document.getElementById("reviewSitesCard");
+  if(!card) return;
+  card.classList.toggle("hidden", !isPrivileged());
+  if(!isPrivileged()) return;
+  const ids = new Set(prodAdmins().map(a=>a.id));
+  const byDomain = {};
+  siteStats.forEach(r=>{
+    if(!ids.has(r.admin_id)) return;
+    if(r.productive) return; // only unproductive
+    byDomain[r.domain] = (byDomain[r.domain]||0) + Number(r.minutes);
+  });
+  const list = Object.entries(byDomain).sort((a,b)=>b[1]-a[1]);
+  const box = document.getElementById("reviewSitesList");
+  if(!list.length){ box.innerHTML = `<div class="empty">No unproductive sites in this range — all clear.</div>`; return; }
+  box.innerHTML = list.map(([domain,mins])=>`
+    <div class="archive-row" style="margin-top:0.3rem">
+      <div style="flex:1;min-width:170px;font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(domain)} <span class="muted">· ${mins}m</span></div>
+      <button class="btn btn-quiet btn-small" data-markprod="${esc(domain)}">✓ Mark productive</button>
+    </div>`).join("");
+}
+
+// Mark a domain productive (from any button), save, and refresh views.
+async function markSiteProductive(domain){
+  if(!domain) return;
+  const {error} = await sb.from("site_rules").upsert({domain: domain, productive: true});
+  if(error){ alert("Could not save: " + error.message); return; }
+  // refresh site stats + dashboard so scores and lists update immediately
+  await loadSiteStats();
+  refreshDashboard();
+  if(typeof loadSiteRules === "function" && document.getElementById("siteRulesList")) loadSiteRules();
+}
+
+/* ================= NAV ================= */
+function showView(which){
+  currentView = which;
+  document.getElementById("viewDash").classList.toggle("hidden", which!=="dash");
+  document.getElementById("viewSales").classList.toggle("hidden", which!=="sales");
+  document.getElementById("viewKB").classList.toggle("hidden", which!=="kb");
+  document.getElementById("navDash").classList.toggle("active", which==="dash");
+  document.getElementById("navSales").classList.toggle("active", which==="sales");
+  document.getElementById("navKB").classList.toggle("active", which==="kb");
+  document.getElementById("navAdmin").classList.toggle("active", which==="admin");
+  document.getElementById("viewLogin").classList.toggle("hidden", which!=="admin" || !!me);
+  document.getElementById("viewAdmin").classList.toggle("hidden", which!=="admin" || !me);
+  if(which==="dash") refreshDashboard();
+  if(which==="sales"){ renderSales(); renderMarkets(); if(!salesData) loadSales(false); }
+  if(which==="kb"){
+    const gated = !me;
+    document.getElementById("kbGate").classList.toggle("hidden", !gated);
+    document.getElementById("kbMain").classList.toggle("hidden", gated);
+    if(!gated && !kbLoaded) loadKbDocs();
+  }
+  if(which==="admin" && me) refreshAdmin();
+}
+
+/* ================= AUTH ================= */
+async function initAuth(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){
+    me = admins.find(a=>a.id===session.user.id) || null;
+    await loadTasks();
+    if(isPrivileged()) initOwnerPanel();
+  }
+  const navLabel = document.getElementById("navAdmin");
+  navLabel.textContent = me ? ("My Shift ("+me.name+")") : "Admin Login";
+}
+async function doLogin(){
+  const id = document.getElementById("loginAdmin").value;
+  const pass = document.getElementById("loginPass").value;
+  const err = document.getElementById("loginError");
+  const a = admins.find(x=>x.id===id);
+  if(!a){ err.textContent = "Pick an admin."; return; }
+  err.textContent = "Signing in…";
+  const {error} = await sb.auth.signInWithPassword({email:a.email, password:pass});
+  if(error){ err.textContent = "Incorrect password for "+a.name+". Try again."; return; }
+  err.textContent = "";
+  document.getElementById("loginPass").value = "";
+  me = a;
+  // Force password change for accounts flagged after a reset
+  const {data: freshMe} = await sb.from("admins").select("must_change_password").eq("id", a.id).maybeSingle();
+  if(freshMe && freshMe.must_change_password){
+    document.getElementById("changePwCard").classList.remove("hidden");
+    document.getElementById("newPw1").focus();
+    return;
+  }
+  await loadTasks();
+  document.getElementById("navAdmin").textContent = "My Shift ("+me.name+")";
+  if(isPrivileged()) initOwnerPanel();
+  showView("admin");
+}
+function pwValid(p){
+  return p.length>=8 && p.length<=15 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p);
+}
+async function saveNewPassword(){
+  const p1 = document.getElementById("newPw1").value;
+  const p2 = document.getElementById("newPw2").value;
+  const err = document.getElementById("changePwError");
+  if(p1 !== p2){ err.textContent = "The two passwords don't match."; return; }
+  if(!pwValid(p1)){ err.textContent = "Password must be 8–15 characters with upper & lower case, a number, and a special character."; return; }
+  err.textContent = "Saving…";
+  const {data:{session}} = await sb.auth.getSession();
+  try{
+    const res = await fetch(SUPABASE_URL + "/functions/v1/password-flow", {
+      method:"POST",
+      headers:{ "Authorization":"Bearer "+(session?session.access_token:""), "apikey":SUPABASE_ANON_KEY, "Content-Type":"application/json" },
+      body: JSON.stringify({action:"set_own_password", new_password: p1})
+    });
+    const j = await res.json();
+    if(!j.ok){ err.textContent = j.error==="password_complexity" ? "Password doesn't meet the requirements." : ("Could not save: "+(j.error||res.status)); return; }
+    document.getElementById("changePwCard").classList.add("hidden");
+    document.getElementById("newPw1").value=""; document.getElementById("newPw2").value="";
+    err.textContent = "";
+    await loadTasks();
+    document.getElementById("navAdmin").textContent = "My Shift ("+me.name+")";
+    if(isPrivileged()) initOwnerPanel();
+    showView("admin");
+  }catch(e){ err.textContent = "Could not reach the server."; }
+}
+async function doForgot(){
+  const id = document.getElementById("loginAdmin").value;
+  const a = admins.find(x=>x.id===id);
+  const msg = document.getElementById("forgotMsg");
+  if(!a){ msg.textContent = "Pick your name first, then click Forgot password."; return; }
+  msg.textContent = "Requesting…";
+  try{
+    const res = await fetch(SUPABASE_URL + "/functions/v1/password-flow", {
+      method:"POST",
+      headers:{ "apikey":SUPABASE_ANON_KEY, "Content-Type":"application/json" },
+      body: JSON.stringify({action:"forgot", email: a.email})
+    });
+    const j = await res.json();
+    if(j.manager){ msg.textContent = "You're a manager — ask the owner to reset your password."; return; }
+    msg.textContent = "A temporary password has been generated. Ask your manager for it, sign in with it, then you'll set your own.";
+  }catch(e){ msg.textContent = "Could not reach the server."; }
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  me = null;
+  document.getElementById("navAdmin").textContent = "Admin Login";
+  document.getElementById("ownerPanel").classList.add("hidden");
+  showView("admin");
+}
+
+/* ================= SHIFT + TASKS ================= */
+async function toggleShift(){
+  if(!me) return;
+  const st = liveStates[me.id] || {};
+  const nowIso = new Date().toISOString();
+  if(!st.on_shift){
+    const {error} = await sb.from("live_state").upsert({admin_id:me.id, on_shift:true, shift_started_at:nowIso, task:null, task_started_at:null, updated_at:nowIso});
+    if(error){ alert("Could not start shift: "+error.message); return; }
+  } else {
+    if(st.task && st.task_started_at){
+      const {error:e1} = await sb.from("sessions").insert({admin_id:me.id, task:st.task, started_at:st.task_started_at, ended_at:nowIso});
+      if(e1){ alert("Could not save task time: "+e1.message); return; }
+    }
+    const {error} = await sb.from("live_state").upsert({admin_id:me.id, on_shift:false, shift_started_at:null, task:null, task_started_at:null, updated_at:nowIso});
+    if(error){ alert("Could not end shift: "+error.message); return; }
+  }
+  await Promise.all([loadLive(), loadMySessions()]);
+  sendHeartbeat();
+  reportTabSeen();
+  renderAdmin();
+}
+async function toggleTask(name){
+  if(!me) return;
+  const st = liveStates[me.id] || {};
+  if(!st.on_shift) return;
+  const nowIso = new Date().toISOString();
+  if(st.task && st.task_started_at){
+    const {error:e1} = await sb.from("sessions").insert({admin_id:me.id, task:st.task, started_at:st.task_started_at, ended_at:nowIso});
+    if(e1){ alert("Could not save task time: "+e1.message); return; }
+  }
+  const startingNew = st.task !== name;
+  const {error} = await sb.from("live_state").upsert({
+    admin_id:me.id, on_shift:true, shift_started_at:st.shift_started_at,
+    task: startingNew ? name : null,
+    task_started_at: startingNew ? nowIso : null,
+    updated_at: nowIso
+  });
+  if(error){ alert("Could not update task: "+error.message); return; }
+  await Promise.all([loadLive(), loadMySessions()]);
+  sendHeartbeat();
+  reportTabSeen();
+  renderAdmin();
+}
+
+/* ================= ADMIN RENDER ================= */
+async function loadTasks(){
+  try{
+    const {data} = await sb.from("task_list").select("*").order("position").order("name");
+    if(data && data.length) TASKS = data.map(r=>r.name);
+  }catch(e){ /* keep defaults */ }
+}
+async function loadMyStars(){
+  if(!me) return;
+  const {data} = await sb.from("task_stars").select("task")
+    .eq("admin_id", me.id).eq("day", dateKey(Date.now()));
+  myStars = new Set((data||[]).map(r=>r.task));
+}
+async function toggleStar(task){
+  if(!me) return;
+  if(myStars.has(task)){
+    await sb.from("task_stars").delete().eq("admin_id", me.id).eq("day", dateKey(Date.now())).eq("task", task);
+  } else {
+    await sb.from("task_stars").insert({admin_id: me.id, day: dateKey(Date.now()), task: task});
+  }
+  await loadMyStars();
+  renderAdmin();
+}
+async function loadMyOtherProjects(){
+  if(!me) return;
+  const {data} = await sb.from("other_projects").select("*")
+    .eq("admin_id", me.id).eq("day", dateKey(Date.now())).order("id");
+  myOtherProjects = data || [];
+}
+async function addOtherProject(){
+  const inp = document.getElementById("opNewLabel");
+  const label = inp ? inp.value.trim() : "";
+  if(!label){ return; }
+  const {error} = await sb.from("other_projects").insert({admin_id: me.id, day: dateKey(Date.now()), label: label});
+  if(error){ alert("Could not add: " + error.message); return; }
+  await loadMyOtherProjects();
+  renderAdmin();
+}
+async function delOtherProject(id){
+  const {error} = await sb.from("other_projects").delete().eq("id", id);
+  if(error){ alert("Could not remove: " + error.message); return; }
+  await loadMyOtherProjects();
+  renderAdmin();
+}
+async function refreshAdmin(){
+  try{
+    await Promise.all([loadLive(), loadMySessions(), loadMyOtherProjects(), loadMyStars()]);
+    renderAdmin();
+  }catch(e){ /* transient */ }
+}
+function renderAdmin(){
+  if(!me) return;
+  const untracked = me.tracked === false;
+  document.getElementById("untrackedNote").classList.toggle("hidden", !untracked);
+  document.querySelector(".shift-bar").classList.toggle("hidden", untracked);
+  document.getElementById("taskList").closest(".card").classList.toggle("hidden", untracked);
+  document.getElementById("myLog").closest(".card").classList.toggle("hidden", untracked);
+  if(untracked) return;
+  const st = liveStates[me.id] || {};
+  document.getElementById("shiftWho").textContent = me.name;
+  document.getElementById("shiftDot").classList.toggle("on", !!st.on_shift);
+  document.getElementById("shiftSwitch").setAttribute("aria-checked", st.on_shift ? "true":"false");
+  document.getElementById("shiftState").textContent = st.on_shift
+    ? "Active — on shift since " + new Date(st.shift_started_at).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})
+    : "Inactive — off shift";
+  document.getElementById("taskHint").textContent = st.on_shift
+    ? "Toggle a task to start its timer. Starting a new task stops the previous one."
+    : "Go active on your shift to start tracking tasks.";
+
+  const from = startOfDay(new Date()), to = endOfDay(new Date());
+  const agg = aggregate(me.id, mySessions, from, to);
+
+  const list = document.getElementById("taskList");
+  list.classList.toggle("tasks-disabled", !st.on_shift);
+  const FIRST_TASK = "Seller's Email";
+  const orderedTasks = [FIRST_TASK,
+    ...TASKS.filter(t=>t!==FIRST_TASK && myStars.has(t)),
+    ...TASKS.filter(t=>t!==FIRST_TASK && !myStars.has(t))];
+  list.innerHTML = orderedTasks.map(t=>{
+    const running = st.task === t;
+    let extra = "";
+    if(t === "Other Projects"){
+      const items = myOtherProjects.map(o=>
+        `<span style="display:inline-flex;align-items:center;gap:0.3rem;background:#efede7;border-radius:999px;padding:0.2rem 0.6rem;font-size:0.8rem">${esc(o.label)} <button class="link-btn" data-op-del="${o.id}" style="text-decoration:none;font-size:0.9rem;line-height:1">×</button></span>`
+      ).join(" ");
+      extra = `<div style="padding:0.5rem 0.85rem 0.7rem;border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;background:#fbfaf7">
+        <div class="muted" style="font-size:0.78rem;margin-bottom:0.35rem">What are you working on today under Other Projects?</div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+          ${items}
+          <input type="text" id="opNewLabel" placeholder="e.g. Q3 inventory cleanup" style="padding:0.35rem 0.5rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:0.82rem;min-width:170px">
+          <button class="btn btn-quiet btn-small" id="opAddBtn">Add</button>
+        </div>
+      </div>`;
+    }
+    return `<div>
+    <div class="task-row ${running?"running":""}" data-task-row="${esc(t)}" ${t==="Other Projects" ? 'style="border-radius:8px 8px 0 0"' : ""}>
+      <div class="task-name">${t===FIRST_TASK ? "" : `<button class="link-btn" data-star="${esc(t)}" title="${myStars.has(t)?"Unpin from top":"Pin to top"}" style="text-decoration:none;font-size:1.05rem;line-height:1;color:${myStars.has(t)?"var(--amber-deep)":"#c9c6bc"}">${myStars.has(t)?"★":"☆"}</button> `}${esc(t)}</div>
+      <div class="task-side">
+        <div class="task-time mono">${fmt(agg.perTask[t]||0)}</div>
+        <button class="switch" role="switch" aria-checked="${running}" aria-label="Toggle ${esc(t)}" data-task="${esc(t)}"></button>
+      </div>
+    </div>${extra}</div>`;
+  }).join("");
+
+  document.getElementById("todayTotal").textContent = fmt(agg.total);
+
+  const agg14 = aggregate(me.id, mySessions, startOfDay(new Date(Date.now()-13*86400000)), to);
+  const keys = Object.keys(agg14.perDay).sort().reverse();
+  document.getElementById("myLog").innerHTML = keys.length
+    ? `<table><thead><tr><th>Date</th><th class="num">Hours</th><th class="num">% of 7.5h goal</th></tr></thead><tbody>` +
+      keys.map(k=>{
+        const pct = Math.round(agg14.perDay[k]/GOAL_MS*100);
+        return `<tr><td>${niceDate(k)}</td><td class="num">${fmtHours(agg14.perDay[k])}</td><td class="num">${pct}%</td></tr>`;
+      }).join("") + `</tbody></table>`
+    : `<div class="empty">No hours logged yet. Your daily totals will appear here.</div>`;
+}
+
+/* ================= DASHBOARD RENDER ================= */
+async function refreshDashboard(){
+  try{
+    await Promise.all([loadLive(), loadRangeSessions(), loadPresence(), loadSiteStats(), loadRangeOtherProjects()]);
+    renderDashboard();
+    document.getElementById("dashError").innerHTML = "";
+  }catch(e){
+    document.getElementById("dashError").innerHTML =
+      `<div class="error-banner">Could not reach the team database. Check your internet connection and refresh.</div>`;
+  }
+}
+function renderDashboard(){
+  document.getElementById("rangeLabel").textContent =
+    "Showing: " + new Date(range.from).toLocaleDateString() + " — " + new Date(range.to).toLocaleDateString();
+
+  if(!me){
+    document.getElementById("pctRows").innerHTML = "";
+    const teamEl0 = document.getElementById("teamPct");
+    teamEl0.textContent = "—";
+    teamEl0.classList.remove("goal-hit");
+    document.getElementById("teamPctLabel").textContent = "sign in to view productivity";
+    document.getElementById("adminCards").innerHTML =
+      `<div class="card"><div class="empty" style="margin-bottom:0.6rem">Productivity is private. Each admin sees their own report; managers see the whole team.</div>
+      <button class="btn btn-primary btn-small" id="goLogin">Go to Admin Login</button></div>`;
+    return;
+  }
+  document.getElementById("teamPctLabel").textContent = isPrivileged()
+    ? "team productivity for this range"
+    : "your productivity for this range";
+
+  // ---- productivity % ----
+  let pctRows = "", pcts = [];
+  prodAdmins().forEach(a=>{
+    const agg = aggregate(a.id, rangeSessions, range.from, range.to);
+    const days = Object.keys(agg.perDay).length;
+    if(days > 0){
+      const adjTotal = Math.max(0, agg.total - unprodMsFor(a.id));
+      const pct = adjTotal / (GOAL_MS * days) * 100;
+      pcts.push(pct);
+      const shown = Math.round(pct);
+      const aw2 = awayStats[a.id];
+      const idleM = aw2 ? Math.max(0, Number(aw2.timer_minutes) - Number(aw2.present_minutes)) : 0;
+      pctRows += `<div class="pct-row">
+        <div class="pct-name">${esc(a.name)}</div>
+        <div class="pct-bar-wrap"><div class="pct-bar ${pct>=100?"full":""}" style="width:${Math.min(100,pct)}%"></div></div>
+        <div class="pct-val" style="width:130px">${shown}% <span class="muted" style="font-weight:400;font-size:0.72rem">· ${idleM}m idle</span></div>
+      </div>`;
+    } else {
+      pctRows += `<div class="pct-row">
+        <div class="pct-name">${esc(a.name)}</div>
+        <div class="pct-bar-wrap"><div class="pct-bar" style="width:0%"></div></div>
+        <div class="pct-val">—</div>
+      </div>`;
+    }
+  });
+  document.getElementById("pctRows").innerHTML = pctRows;
+  const teamEl = document.getElementById("teamPct");
+  if(pcts.length){
+    const team = Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);
+    teamEl.textContent = team + "%";
+    teamEl.classList.toggle("goal-hit", team>=100);
+  } else {
+    teamEl.textContent = "—";
+    teamEl.classList.remove("goal-hit");
+  }
+
+  // ---- admin hour cards ----
+  const wrap = document.getElementById("adminCards");
+  wrap.innerHTML = prodAdmins().map(a=>{
+    const agg = aggregate(a.id, rangeSessions, range.from, range.to);
+    const st = liveStates[a.id];
+    const onShift = st && st.on_shift;
+    const open = openCards.has(a.id);
+    const aw = awayStats[a.id];
+    let presenceLine = "";
+    if(aw && Number(aw.timer_minutes) > 0){
+      const away = Math.max(0, Number(aw.timer_minutes) - Number(aw.present_minutes));
+      const pct = Math.round(away / Number(aw.timer_minutes) * 100);
+      presenceLine = `<div class="admin-sub">Idle while timing: ${away}m of ${aw.timer_minutes}m${away>0 ? " ("+pct+"%)" : ""}</div>`;
+    }
+    let warnLine = "";
+    if(onShift && st.task){
+      const lb = recentBeats[a.id];
+      const minsAgo = lb ? Math.floor((Date.now() - lb)/60000) : null;
+      if(minsAgo === null || minsAgo >= 3){
+        warnLine = `<div class="admin-sub" style="color:var(--red)">⚠ Timer running but no activity ${minsAgo===null ? "detected" : "for "+minsAgo+"m"}</div>`;
+      }
+    }
+    let breakdown = "";
+    if(open){
+      const ck = (sec)=> a.id + ":" + sec;
+      const co = (sec)=> cardSecOpen.has(ck(sec));
+      const sec = (secId, label, inner)=>
+        `<h4 data-cardsec="${esc(ck(secId))}" style="margin-top:0.8rem;cursor:pointer;user-select:none">${co(secId)?"▾":"▸"} ${label}</h4>` +
+        (co(secId) ? inner : "");
+      const taskKeys = [...TASKS.filter(t=>agg.perTask[t]), ...Object.keys(agg.perTask).filter(t=>!TASKS.includes(t))];
+      const rows = taskKeys.map(t=>
+        `<tr><td>${esc(taskDisplay(t))}</td><td class="num">${fmtHours(agg.perTask[t])}</td></tr>`).join("");
+      const dayKeys = Object.keys(agg.perDay).sort().reverse();
+      const dayRows = dayKeys.map(k=>
+        `<tr><td>${niceDate(k)}</td><td class="num">${fmtHours(agg.perDay[k])}</td></tr>`).join("");
+      const ops = rangeOtherProjects.filter(o=>o.admin_id===a.id);
+      const opsHtml = ops.map(o=>`<div class="muted" style="font-size:0.86rem">• ${esc(o.label)} <span style="opacity:0.7">(${esc(o.day)})</span></div>`).join("");
+      // per-user website activity
+      const srows = siteStats.filter(r=>r.admin_id===a.id);
+      let webHtml = `<div class="empty">No website data in this range (Chrome extension not active).</div>`;
+      if(srows.length){
+        const tracked = srows.reduce((x,r)=>x + Number(r.minutes), 0);
+        const rowsU = srows.filter(r=>!r.productive).sort((x,y)=>Number(y.minutes)-Number(x.minutes));
+        const rowsP = srows.filter(r=>r.productive).sort((x,y)=>Number(y.minutes)-Number(x.minutes));
+        const unprod = rowsU.reduce((x,r)=>x + Number(r.minutes), 0);
+        const upPct = tracked ? Math.round(unprod/tracked*100) : 0;
+        const kP = a.id + ":p", kU = a.id + ":u";
+        const siteList = (arr)=> `<div style="font-size:0.83rem;margin:0.25rem 0 0.35rem 1.1rem;color:var(--ink)">` +
+          arr.map(r=>{
+            const tr = fmtTimeRange(r.first_seen, r.last_seen);
+            return `<div style="display:flex;gap:8px;margin:2px 0">
+              <span class="muted" style="flex:none;min-width:118px;font-variant-numeric:tabular-nums">${tr}</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.domain)} — ${r.minutes}m</span>
+            </div>`;
+          }).join("") + `</div>`;
+        // unproductive list with a one-click "mark productive" per site (managers only)
+        const siteListU = (arr)=> `<div style="font-size:0.83rem;margin:0.25rem 0 0.35rem 1.1rem;color:var(--ink)">` +
+          arr.map(r=>{
+            const tr = fmtTimeRange(r.first_seen, r.last_seen);
+            return `<div style="display:flex;align-items:center;gap:8px;margin:2px 0">
+              <span class="muted" style="flex:none;min-width:118px;font-variant-numeric:tabular-nums">${tr}</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.domain)} — ${r.minutes}m</span>
+              ${isPrivileged() ? `<button class="mark-prod" data-markprod="${esc(r.domain)}" title="Mark this site as productive">✓ productive</button>` : ""}
+            </div>`;
+          }).join("") + `</div>`;
+        webHtml = `<div class="${upPct>=25?"delta-down":"muted"}" style="font-size:0.86rem">${unprod}m unproductive of ${tracked}m tracked (${upPct}%)</div>
+          <div class="pct-bar-wrap" style="margin:0.35rem 0"><div class="pct-bar" style="width:${Math.min(100,upPct)}%;background:var(--red)"></div></div>
+          <div class="muted" style="font-size:0.84rem;cursor:pointer;user-select:none" data-wa="${kP}">${waOpen.has(kP)?"▾":"▸"} Productive sites (${rowsP.length} · ${tracked-unprod}m)</div>
+          ${waOpen.has(kP) && rowsP.length ? siteList(rowsP) : ""}
+          <div class="muted" style="font-size:0.84rem;cursor:pointer;user-select:none;margin-top:0.2rem" data-wa="${kU}">${waOpen.has(kU)?"▾":"▸"} Unproductive sites (${rowsU.length} · ${unprod}m)</div>
+          ${waOpen.has(kU) && rowsU.length ? siteListU(rowsU) : ""}`;
+      }
+      // per-user application activity (from the desktop agent) — LOGGED ONLY, no productive/unproductive
+      const arows = appStats.filter(r=>r.admin_id===a.id);
+      let appHtml = `<div class="empty">No application data in this range (desktop agent not active).</div>`;
+      if(arows.length){
+        const tracked = arows.reduce((x,r)=>x + Number(r.minutes), 0);
+        const sorted = [...arows].sort((x,y)=>Number(y.minutes)-Number(x.minutes));
+        const appList = sorted.map(r=>`${esc(r.app_name)} — ${r.minutes}m`).join("<br>");
+        appHtml = `<div class="muted" style="font-size:0.86rem;margin-bottom:0.35rem">${tracked}m of application activity logged</div>
+          <div style="font-size:0.83rem;margin:0.1rem 0 0.2rem 0.2rem;color:var(--ink)">${appList}</div>`;
+      }
+      breakdown = `<div class="breakdown">` +
+        sec("task", "By task (hours)", rows ? `<table><tbody>${rows}</tbody></table>` : `<div class="empty">No task time in this range.</div>`) +
+        sec("day", "By day (hours)", dayRows ? `<table><tbody>${dayRows}</tbody></table>` : `<div class="empty">No days logged in this range.</div>`) +
+        (ops.length ? sec("ops", "Other Projects — details", opsHtml) : "") +
+        sec("web", "Website activity", webHtml) +
+        sec("app", "Application activity", appHtml) +
+      `</div>`;
+    }
+    return `<div class="card admin-card ${open?"open":""}" data-admin-card="${esc(a.id)}" role="button" tabindex="0">
+      <div class="admin-head">
+        <div>
+          <div class="admin-name">${esc(a.name)}</div>
+          <div class="admin-sub">${onShift ? "● On shift now" + (st.task ? " — " + esc(st.task) : "") : "Off shift"}</div>
+          ${presenceLine}
+          ${warnLine}
+        </div>
+        <div style="display:flex;align-items:center;gap:0.7rem">
+          <div class="admin-hours mono">${fmtHours(agg.total)} h</div>
+          <div class="caret">▶</div>
+        </div>
+      </div>
+      ${breakdown}
+    </div>`;
+  }).join("");
+  renderTeamOverall();
+  renderReviewSites();
+}
+function renderTeamOverall(){
+  const card = document.getElementById("teamOverallCard");
+  if(!card) return;
+  card.classList.toggle("hidden", !isPrivileged());
+  if(!isPrivileged()) return;
+  const body = document.getElementById("teamOverallBody");
+  const team = trackedAdmins();
+  if(!team.length){ body.innerHTML = `<div class="empty">No tracked admins.</div>`; return; }
+  let totalMs = 0, adjMs = 0, dayCount = 0, unprodMin = 0, awayMin = 0;
+  const perTask = {}, perDay = {};
+  const pcts = [];
+  team.forEach(a=>{
+    const agg = aggregate(a.id, rangeSessions, range.from, range.to);
+    totalMs += agg.total;
+    const up = unprodMsFor(a.id);
+    unprodMin += Math.round(up/60000);
+    const adj = Math.max(0, agg.total - up);
+    adjMs += adj;
+    Object.entries(agg.perTask).forEach(([t,ms])=>{ perTask[t] = (perTask[t]||0) + ms; });
+    Object.entries(agg.perDay).forEach(([d,ms])=>{ perDay[d] = (perDay[d]||0) + ms; });
+    const days = Object.keys(agg.perDay).length;
+    if(days > 0){ dayCount += days; pcts.push(adj / (GOAL_MS * days) * 100); }
+    const aw = awayStats[a.id];
+    if(aw) awayMin += Math.max(0, Number(aw.timer_minutes) - Number(aw.present_minutes));
+  });
+  const teamPctAvg = pcts.length ? Math.round(pcts.reduce((x,y)=>x+y,0)/pcts.length) : 0;
+  const goalPct = dayCount ? Math.round(adjMs / (GOAL_MS * dayCount) * 100) : 0;
+  const taskRows = Object.entries(perTask).sort((x,y)=>y[1]-x[1])
+    .map(([t,ms])=>`<tr><td>${esc(taskDisplay(t))}</td><td class="num">${fmtHours(ms)}</td></tr>`).join("");
+  const dayRows = Object.keys(perDay).sort().reverse()
+    .map(k=>`<tr><td>${niceDate(k)}</td><td class="num">${fmtHours(perDay[k])}</td></tr>`).join("");
+  body.innerHTML = `
+    <div class="sales-hero">
+      <div><div class="report-sub">Team hours (combined)</div><div class="sales-big">${fmtHours(totalMs)} h</div></div>
+      <div><div class="report-sub">Team productivity (avg, after unproductive time)</div>
+        <div class="sales-big ${teamPctAvg>=100?"delta-up":""}">${teamPctAvg}%</div>
+        <div class="muted">vs 7h30m/day goal · ${goalPct}% of total goal hours</div></div>
+      <div><div class="report-sub">Lost time</div>
+        <div class="sales-big" style="font-size:1.3rem">${unprodMin}m unproductive sites<br>${awayMin}m idle while timing</div></div>
+    </div>
+    <div class="report-sub">Combined hours by task</div>
+    ${taskRows ? `<table><tbody>${taskRows}</tbody></table>` : `<div class="empty">No hours in this range.</div>`}
+    <div class="report-sub" style="margin-top:1rem">Combined hours by day</div>
+    ${dayRows ? `<table><tbody>${dayRows}</tbody></table>` : `<div class="empty">No days logged in this range.</div>`}`;
+}
+function fmtShortMonth(m, y, showYear){
+  const n = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1];
+  return showYear ? n + " '" + String(y).slice(2) : n;
+}
+function trendChart(items, valueKey, color, isMoney){
+  const data = items.filter(x=>x[valueKey]!=null);
+  if(data.length < 2) return "";
+  const w=640, h=210, padL=10, padR=10, padT=26, padB=30;
+  const innerW=w-padL-padR, innerH=h-padT-padB;
+  const vals = data.map(d=>d[valueKey]);
+  const maxV = Math.max(...vals, 0), minV = Math.min(...vals, 0);
+  const range = (maxV - minV) || 1;
+  const zeroY = padT + innerH * (maxV / range);
+  const slot = innerW / data.length;
+  const barW = Math.min(46, slot * 0.62);
+  const showYear = new Set(data.map(d=>d.year)).size > 1;
+  let bars = "";
+  data.forEach((d, i)=>{
+    const x = padL + slot*i + (slot - barW)/2;
+    const v = d[valueKey];
+    const hgt = Math.abs(v) / range * innerH;
+    const y = v >= 0 ? zeroY - hgt : zeroY;
+    const label = isMoney ? "$" + Math.round(v).toLocaleString() : v.toLocaleString();
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(hgt,1).toFixed(1)}" rx="4" fill="${color}"></rect>` +
+      `<text x="${(x+barW/2).toFixed(1)}" y="${(v>=0 ? y-6 : y+hgt+14).toFixed(1)}" text-anchor="middle" font-size="11" fill="#5a6280">${label}</text>` +
+      `<text x="${(x+barW/2).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="11" fill="#5a6280">${fmtShortMonth(d.month, d.year, showYear)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" style="width:100%;height:auto;display:block">` +
+    `<line x1="${padL}" x2="${w-padR}" y1="${zeroY.toFixed(1)}" y2="${zeroY.toFixed(1)}" stroke="#e4e2da"></line>` + bars + `</svg>`;
+}
+function trendBadge(items, key){
+  const d = items.filter(x=>x[key]!=null);
+  if(d.length < 2) return "";
+  const a = d[d.length-2][key], b = d[d.length-1][key];
+  if(!a) return "";
+  const p = (b - a) / Math.abs(a) * 100;
+  return `<span class="${p>=0?"delta-up":"delta-down"}" style="font-size:0.85rem;margin-left:0.4rem">${p>=0?"▲":"▼"} ${Math.abs(p).toFixed(1)}%</span>`;
+}
+const salesSecOpen = {listings: true, revenue: true, table: true};
+const MK_PALETTE = ["#1d2440","#e8a13a","#2e7d5b","#b3452f","#4a6fa5","#8a5ba6","#c2703d","#3d8f8f","#7a8f3d","#a64a6f","#5b8ac2","#946b2d","#476647","#8f3d5e"];
+/* Vertical bar chart with per-item colors and slanted labels */
+function vBarChart(items, fmtVal){
+  if(!items.length) return "";
+  const w = 640, h = 275, padL = 10, padR = 10, padT = 24, padB = 80;
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const maxV = Math.max(...items.map(i=>Math.abs(i.value)), 1);
+  const slot = innerW / items.length;
+  const barW = Math.min(42, slot * 0.6);
+  let out = "";
+  items.forEach((it, i)=>{
+    const cx = padL + slot*i + slot/2;
+    const x = cx - barW/2;
+    const bh = it.value !== 0 ? Math.max(Math.abs(it.value)/maxV*innerH, 2) : 0;
+    const y = padT + innerH - bh;
+    const name = it.name.length > 12 ? it.name.slice(0,11) + "…" : it.name;
+    const ly = padT + innerH + 14;
+    out += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="4" fill="${it.color}"></rect>` +
+      `<text x="${cx.toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="10" fill="#5a6280">${fmtVal(it.value)}</text>` +
+      `<text x="${cx.toFixed(1)}" y="${ly}" transform="rotate(-38 ${cx.toFixed(1)} ${ly})" text-anchor="end" font-size="11" fill="#5a6280">${esc(name)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" style="width:100%;height:auto;display:block">` +
+    `<line x1="${padL}" x2="${w-padR}" y1="${padT+innerH}" y2="${padT+innerH}" stroke="#e4e2da"></line>` + out + `</svg>`;
+}
+
+/* Combined month-by-month chart: listings bars + revenue line + dashed trend line */
+function comboChart(pts){
+  if(pts.length < 2) return "";
+  const w = 640, h = 250, padL = 10, padR = 10, padT = 26, padB = 32;
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const maxL = Math.max(...pts.map(d=>d.listings||0), 1);
+  const revPts = pts.map((d,i)=>({i, v:d.revenue})).filter(p=>p.v!=null);
+  const maxR = Math.max(...revPts.map(p=>Math.abs(p.v)), 1);
+  const slot = innerW / pts.length;
+  const barW = Math.min(40, slot * 0.55);
+  const xC = (i)=> padL + slot*i + slot/2;
+  const showYear = new Set(pts.map(d=>d.year)).size > 1;
+  let bars = "";
+  pts.forEach((d,i)=>{
+    const v = d.listings||0;
+    const bh = v/maxL*innerH;
+    const x = xC(i) - barW/2, y = padT + innerH - bh;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="4" fill="var(--ink)" opacity="0.85"></rect>` +
+      `<text x="${xC(i).toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="10" fill="#5a6280">${v.toLocaleString()}</text>` +
+      `<text x="${xC(i).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="11" fill="#5a6280">${fmtShortMonth(d.month, d.year, showYear)}</text>`;
+  });
+  // revenue value line + dots
+  let revLine = "";
+  if(revPts.length >= 2){
+    const coords = revPts.map(p=>`${xC(p.i).toFixed(1)},${(padT + innerH - Math.abs(p.v)/maxR*innerH).toFixed(1)}`);
+    revLine = `<polyline points="${coords.join(" ")}" fill="none" stroke="var(--amber)" stroke-width="2.5"></polyline>` +
+      revPts.map(p=>`<circle cx="${xC(p.i).toFixed(1)}" cy="${(padT + innerH - Math.abs(p.v)/maxR*innerH).toFixed(1)}" r="4" fill="var(--amber)"></circle>`).join("");
+  }
+  // dashed linear-regression trend line over listings
+  let trend = "";
+  {
+    const n = pts.length;
+    let sx=0, sy=0, sxy=0, sxx=0;
+    pts.forEach((d,i)=>{ const v=d.listings||0; sx+=i; sy+=v; sxy+=i*v; sxx+=i*i; });
+    const denom = n*sxx - sx*sx;
+    if(denom !== 0){
+      const b = (n*sxy - sx*sy)/denom, a = (sy - b*sx)/n;
+      const yAt = (i)=> padT + innerH - Math.min(Math.max(a + b*i, 0), maxL)/maxL*innerH;
+      trend = `<line x1="${xC(0).toFixed(1)}" y1="${yAt(0).toFixed(1)}" x2="${xC(n-1).toFixed(1)}" y2="${yAt(n-1).toFixed(1)}" stroke="#8a8f9f" stroke-width="2" stroke-dasharray="7 5"></line>`;
+    }
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" style="width:100%;height:auto;display:block">` +
+    `<line x1="${padL}" x2="${w-padR}" y1="${padT+innerH}" y2="${padT+innerH}" stroke="#e4e2da"></line>` +
+    bars + trend + revLine + `</svg>`;
+}
+let salesRange = null; // null = all months; else {from:"YYYY-MM", to:"YYYY-MM"}
+function monthKeyOf(m){ return m.year + "-" + String(m.month).padStart(2,"0"); }
+function inSalesRange(m){
+  if(!salesRange) return true;
+  const k = monthKeyOf(m);
+  return (!salesRange.from || k >= salesRange.from) && (!salesRange.to || k <= salesRange.to);
+}
+function salesRangeText(){
+  if(!salesRange) return "Showing: all months on the sheets";
+  return "Showing: " + salesRange.from + " to " + salesRange.to;
+}
+function renderSales(){
+  const el = document.getElementById("salesBody");
+  const lbl = document.getElementById("salesRangeLabel");
+  if(lbl) lbl.textContent = salesRangeText();
+  if(!salesData){ el.innerHTML = `<div class="empty">Loading sales data…</div>`; return; }
+  const months = (salesData.months||[]).filter(inSalesRange)
+    .sort((a,b)=>(a.year*100+a.month)-(b.year*100+b.month));
+  if(!months.length){
+    el.innerHTML = `<div class="empty">No sales data in this range. ${salesErrorNote()}</div>`;
+    return;
+  }
+  const cur = months[months.length-1];
+  const prev = months[months.length-2];
+  const now = new Date();
+  const curKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  const curIsNow = monthKeyOf(cur) === curKey;
+
+  let hero = `<div class="sales-hero">`;
+  hero += `<div><div class="report-sub">${MONTH_NAMES[cur.month-1]} ${cur.year} — sold listings</div>
+    <div class="sales-big">${cur.listings!=null ? cur.listings.toLocaleString() : "—"}</div>`;
+  if(cur.listings!=null && prev && prev.listings!=null && prev.listings>0){
+    const d = (cur.listings - prev.listings)/prev.listings*100;
+    hero += `<div class="${d>=0?"delta-up":"delta-down"}">${d>=0?"▲":"▼"} ${Math.abs(d).toFixed(1)}% vs ${MONTH_NAMES[prev.month-1]}</div>`;
+  }
+  hero += `</div>`;
+  hero += `<div><div class="report-sub">${MONTH_NAMES[cur.month-1]} ${cur.year} — finalized revenue</div>
+    <div class="sales-big">${cur.revenue!=null ? fmtMoney(cur.revenue) : "—"}</div>
+    ${cur.revenue==null ? `<div class="muted">Awaiting finalized data</div>` : ""}
+  </div></div>`;
+
+  const rows = months.slice().reverse().map((m,i,arr)=>{
+    const prevM = arr[i+1];
+    let delta = "";
+    if(m.listings!=null && prevM && prevM.listings!=null && prevM.listings>0){
+      const d = (m.listings - prevM.listings)/prevM.listings*100;
+      delta = `<span class="${d>=0?"delta-up":"delta-down"}">${d>=0?"+":""}${d.toFixed(1)}%</span>`;
+    }
+    return `<tr>
+      <td>${MONTH_NAMES[m.month-1]} ${m.year}${monthKeyOf(m)===curKey?" (current)":""}</td>
+      <td class="num">${m.listings!=null ? m.listings.toLocaleString() : "—"}</td>
+      <td class="num">${delta||"—"}</td>
+      <td class="num">${m.revenue!=null ? fmtMoney(m.revenue) : "—"}</td>
+    </tr>`;
+  }).join("");
+
+  const chartMonths = months.slice(-12);
+  const listingsChart = trendChart(chartMonths, "listings", "var(--ink)", false);
+  const revenueChart = trendChart(chartMonths, "revenue", "var(--amber)", true);
+  const lOpen = salesSecOpen.listings, rOpen = salesSecOpen.revenue, tOpen = salesSecOpen.table;
+
+  el.innerHTML = hero +
+    `<div class="report-sub collapse-head ${lOpen?"open":""}" data-ssec="listings" style="margin-top:0.4rem">Sold listings trend ${trendBadge(chartMonths,"listings")} <span class="caret">▶</span></div>` +
+    (lOpen ? (listingsChart || `<div class="empty">Not enough months to chart yet.</div>`) : "") +
+    `<div class="report-sub collapse-head ${rOpen?"open":""}" data-ssec="revenue" style="margin-top:1.1rem">Finalized revenue trend ${trendBadge(chartMonths,"revenue")} <span class="caret">▶</span></div>` +
+    (rOpen ? (revenueChart || `<div class="empty">Awaiting finalized data.</div>`) : "") +
+    `<div class="report-sub collapse-head ${tOpen?"open":""}" data-ssec="table" style="margin-top:1.1rem">Month by month <span class="caret">▶</span></div>` +
+    (tOpen ? comboChart(chartMonths) +
+    `<div class="muted" style="font-size:0.78rem;margin:0.3rem 0 0.6rem">
+      <span style="display:inline-block;width:10px;height:10px;background:var(--ink);opacity:0.85;border-radius:2px"></span> Sold listings&nbsp;&nbsp;
+      <span style="display:inline-block;width:10px;height:10px;background:var(--amber);border-radius:50%"></span> Finalized revenue&nbsp;&nbsp;
+      <span style="display:inline-block;width:18px;border-top:2px dashed #8a8f9f;vertical-align:middle"></span> Trend
+    </div>` +
+    `<table><thead><tr><th>Month</th><th class="num">Sold listings</th><th class="num">vs prev.</th><th class="num">Finalized revenue</th></tr></thead>
+    <tbody>${rows}</tbody></table>` : "") +
+    `${salesErrorNote()}
+    <div class="muted" style="margin-top:0.6rem">Updated ${salesData.generated_at ? new Date(salesData.generated_at).toLocaleString() : ""}. Refreshes automatically every 15 minutes.${curIsNow ? "" : " Latest month shown is the newest inside the selected range."}</div>`;
+}
+function salesErrorNote(){
+  const errs = (salesData && salesData.errors) || [];
+  if(!errs.length) return "";
+  const notes = [];
+  if(errs.some(e=>e.startsWith("archive_unreachable"))) notes.push("The revenue archive sheet isn't reachable yet — it needs link-sharing turned on (Anyone with the link → Viewer).");
+  if(errs.includes("sales_sheet_unreachable")) notes.push("The sales sheet isn't reachable — it needs link-sharing turned on (Anyone with the link → Viewer).");
+  if(errs.includes("fetch_failed")) notes.push("Could not contact the report service.");
+  return notes.length ? `<div class="error-banner" style="margin-top:0.8rem">${notes.join("<br>")}</div>` : "";
+}
+
+/* ================= OWNER SETTINGS ================= */
+let archiveList = [];
+async function initOwnerPanel(){
+  document.getElementById("ownerPanel").classList.remove("hidden");
+  const {data, error} = await sb.from("settings").select("*");
+  if(error) return;
+  const s = {}; (data||[]).forEach(r=>s[r.key]=r.value);
+  document.getElementById("salesUrl").value = (s.sales_sheet && s.sales_sheet.url) || "";
+  document.getElementById("salesYear").value = (s.sales_sheet && s.sales_sheet.year) || new Date().getFullYear();
+  archiveList = Array.isArray(s.archive_sheets) ? s.archive_sheets : [];
+  renderArchiveRows();
+  renderTeamList();
+  loadTempPasswords();
+  loadKbAdmin();
+  loadSiteRules();
+  loadTaskAdmin();
+}
+function renderTeamList(){
+  const wrap = document.getElementById("teamList");
+  if(!wrap) return;
+  wrap.innerHTML = admins.map(a=>{
+    const inactive = a.active===false;
+    const tags = [];
+    if(a.is_owner) tags.push("owner");
+    if(a.privileged && !a.is_owner) tags.push("manager");
+    if(a.tracked===false) tags.push("no tracking");
+    if(inactive) tags.push("inactive");
+    let btns = "";
+    if(a.is_owner){
+      btns = (me && me.is_owner)
+        ? `<button class="btn btn-quiet btn-small" data-team-edit="${esc(a.id)}">Edit login</button> <span class="muted">owner</span>`
+        : `<span class="muted">owner</span>`;
+    } else {
+      if(me && me.is_owner && !inactive){
+        btns += a.privileged
+          ? `<button class="btn btn-quiet btn-small" data-team-priv="${esc(a.id)}">Remove manager</button> `
+          : `<button class="btn btn-quiet btn-small" data-team-priv="${esc(a.id)}">Make manager</button> `;
+      }
+      if(!inactive){
+        btns += a.tracked===false
+          ? `<button class="btn btn-quiet btn-small" data-team-track="${esc(a.id)}">Enable tracking</button> `
+          : `<button class="btn btn-quiet btn-small" data-team-track="${esc(a.id)}">Disable tracking</button> `;
+      }
+      if(!inactive && (me && (me.is_owner || !a.is_owner))){
+        btns += `<button class="btn btn-quiet btn-small" data-team-edit="${esc(a.id)}">Edit login</button> `;
+      }
+      btns += inactive
+        ? `<button class="btn btn-quiet btn-small" data-team-react="${esc(a.id)}">Reactivate</button>`
+        : `<button class="btn btn-quiet btn-small" data-team-remove="${esc(a.id)}">Remove</button>`;
+    }
+    return `<div class="archive-row" style="margin-top:0.35rem">
+      <div style="flex:1;min-width:200px">${esc(a.name)} <span class="muted">· ${esc(a.email)}${tags.length ? " · " + tags.join(" · ") : ""}</span></div>
+      ${btns}
+    </div>`;
+  }).join("");
+  const credAdmins = activeAdmins().filter(a=> (me && me.is_owner) ? true : !a.is_owner);
+  document.getElementById("resetWho").innerHTML =
+    credAdmins.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join("");
+}
+async function loadTempPasswords(){
+  const wrap = document.getElementById("tempPwList");
+  if(!wrap) return;
+  try{
+    const {data} = await sb.rpc("temp_passwords");
+    if(!data || !data.length){ wrap.innerHTML = `<div class="empty" style="font-size:0.85rem">No pending temporary passwords.</div>`; return; }
+    wrap.innerHTML = data.map(r=>`
+      <div class="archive-row" style="margin-top:0.3rem">
+        <div style="flex:1;min-width:160px;font-size:0.88rem">${esc(r.name)} <span class="muted">${esc(r.email)}</span></div>
+        <code style="background:#efede7;border-radius:6px;padding:0.15rem 0.5rem;font-size:0.9rem">${esc(r.temp_password)}</code>
+        <span class="muted" style="font-size:0.76rem">${r.must_change ? "awaiting reset" : ""}</span>
+      </div>`).join("");
+  }catch(e){ wrap.innerHTML = ""; }
+}
+async function manageAdmin(payload){
+  const msg = document.getElementById("settingsMsg");
+  msg.textContent = "Working…";
+  const {data:{session}} = await sb.auth.getSession();
+  try{
+    const res = await fetch(SUPABASE_URL + "/functions/v1/admin-manage", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + (session ? session.access_token : ""),
+        "apikey": SUPABASE_ANON_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(j.ok){
+      msg.textContent = (payload.action==="add" ? "Added " : payload.action==="remove" ? "Removed " : payload.action==="nominate" ? "Manager rights given to " : payload.action==="revoke" ? "Manager rights removed from " : payload.action==="set_tracked" ? "Tracking updated for " : "Reactivated ") + j.name + ".";
+      await loadAdmins();
+      renderTeamList();
+      renderDashboard();
+      if(payload.action==="add"){
+        document.getElementById("newName").value = "";
+        document.getElementById("newEmail").value = "";
+        document.getElementById("newPass").value = "";
+      }
+    } else {
+      msg.textContent = "";
+      alert("Could not update the team: " + (j.error || res.status));
+    }
+  }catch(e){
+    msg.textContent = "";
+    alert("Could not reach the team service.");
+  }
+  setTimeout(()=>{ msg.textContent = ""; }, 6000);
+}
+async function resetAdminPassword(){
+  const msg = document.getElementById("settingsMsg");
+  const who = document.getElementById("resetWho").value;
+  const np = document.getElementById("resetPass").value.trim();
+  const ne = document.getElementById("resetEmail").value.trim();
+  if(!who || (!np && !ne)){ alert("Enter a new email, a new password, or both."); return; }
+  if(np && np.length < 6){ alert("Password must be at least 6 characters."); return; }
+  msg.textContent = "Updating credentials…";
+  const {data:{session}} = await sb.auth.getSession();
+  try{
+    const res = await fetch(SUPABASE_URL + "/functions/v1/admin-reset-password", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + (session ? session.access_token : ""),
+        "apikey": SUPABASE_ANON_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({admin_id: who, new_password: np || undefined, new_email: ne || undefined})
+    });
+    const j = await res.json();
+    if(j.ok){
+      const parts = [];
+      if(j.updated && j.updated.email) parts.push("email");
+      if(j.updated && j.updated.password) parts.push("password");
+      msg.textContent = "Updated " + (parts.join(" and ") || "credentials") + " for " + j.name + ".";
+      document.getElementById("resetPass").value = "";
+      document.getElementById("resetEmail").value = "";
+      await loadAdmins();
+      renderTeamList();
+    } else {
+      msg.textContent = "";
+      alert("Could not update credentials: " + (j.error || res.status));
+    }
+  }catch(e){
+    msg.textContent = "";
+    alert("Could not reach the credentials service.");
+  }
+  setTimeout(()=>{ msg.textContent = ""; }, 6000);
+}
+function renderArchiveRows(){
+  const wrap = document.getElementById("archiveRows");
+  wrap.innerHTML = archiveList.map((a,i)=>`
+    <div class="archive-row" style="margin-top:0.4rem">
+      <input type="number" value="${esc(a.year||"")}" placeholder="Year" data-arch-year="${i}">
+      <input type="url" value="${esc(a.url||"")}" placeholder="https://docs.google.com/spreadsheets/d/…" data-arch-url="${i}">
+      <button class="btn btn-quiet btn-small" data-arch-del="${i}">Remove</button>
+    </div>`).join("") || `<div class="empty">No archive sheets yet.</div>`;
+}
+async function saveSettings(){
+  const msg = document.getElementById("settingsMsg");
+  msg.textContent = "Saving…";
+  document.querySelectorAll("[data-arch-year]").forEach(inp=>{ archiveList[+inp.dataset.archYear].year = parseInt(inp.value)||null; });
+  document.querySelectorAll("[data-arch-url]").forEach(inp=>{ archiveList[+inp.dataset.archUrl].url = inp.value.trim(); });
+  const salesVal = {url: document.getElementById("salesUrl").value.trim(), year: parseInt(document.getElementById("salesYear").value)||new Date().getFullYear()};
+  const cleanArchives = archiveList.filter(a=>a.url);
+  const {error:e1} = await sb.from("settings").upsert({key:"sales_sheet", value:salesVal, updated_at:new Date().toISOString()});
+  const {error:e2} = await sb.from("settings").upsert({key:"archive_sheets", value:cleanArchives, updated_at:new Date().toISOString()});
+  if(e1||e2){ msg.textContent = ""; alert("Could not save settings: "+((e1||e2).message)); return; }
+  msg.textContent = "Saved. The sales report will use these links on its next refresh.";
+  setTimeout(()=>{ msg.textContent=""; }, 5000);
+}
+async function refreshSalesNow(){
+  const msg = document.getElementById("settingsMsg");
+  msg.textContent = "Refreshing sales data…";
+  salesData = null; renderSales();
+  await loadSales(true);
+  msg.textContent = "Sales data refreshed.";
+  setTimeout(()=>{ msg.textContent=""; }, 5000);
+}
+
+/* ================= KNOWLEDGE BASE ================= */
+let kbCat = null;
+let kbDocsList = [];
+let kbLoaded = false;
+async function loadKbDocs(){
+  const {data, error} = await sb.from("kb_docs").select("*").order("category").order("title");
+  if(error) return;
+  kbDocsList = data || [];
+  kbLoaded = true;
+  renderKbCats();
+}
+function renderKbCats(){
+  const wrap = document.getElementById("kbCats");
+  if(!wrap) return;
+  const cats = [...new Set(kbDocsList.map(d=>d.category))].sort();
+  wrap.innerHTML = `<button class="chip ${kbCat===null?"active":""}" data-kbcat="">All</button>` +
+    cats.map(c=>`<button class="chip ${kbCat===c?"active":""}" data-kbcat="${esc(c)}">${esc(c)}</button>`).join("");
+}
+async function doKbSearch(){
+  const q = document.getElementById("kbQuery").value.trim();
+  const box = document.getElementById("kbResults");
+  if(!q){ box.innerHTML = `<div class="empty">Type a question to search the training docs.</div>`; return; }
+  box.innerHTML = `<div class="empty">Searching…</div>`;
+  const {data, error} = await sb.rpc("kb_search", {q: q, cat: kbCat});
+  if(error){ box.innerHTML = `<div class="empty">Search failed: ${esc(error.message)}</div>`; return; }
+  if(!data || !data.length){
+    box.innerHTML = `<div class="empty">No matches${kbCat ? " in " + esc(kbCat) : ""}. Try different words${kbCat ? " or the All tab" : ""}.</div>`;
+    return;
+  }
+  box.innerHTML = data.map((r,idx)=>{
+    const snip = esc(r.snippet).replaceAll("&lt;mark&gt;","<mark>").replaceAll("&lt;/mark&gt;","</mark>");
+    const docUrl = "https://docs.google.com/document/d/" + esc(r.gdoc_id) + "/edit";
+    const isTop = idx === 0;
+    return `<div class="kb-hit ${isTop?"kb-top":""}">
+      <div style="display:flex;justify-content:space-between;gap:0.6rem;flex-wrap:wrap;align-items:baseline">
+        <div><strong>${esc(r.doc_title)}</strong>${r.section ? ` <span class="muted">· ${esc(r.section)}</span>` : ""}</div>
+        <span class="kb-cat">${esc(r.category)}</span>
+      </div>
+      <div class="kb-answer">${snip}</div>
+      <div style="margin-top:0.5rem">
+        <a class="btn btn-quiet btn-small" href="${docUrl}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">View Docs →</a>
+        ${isTop ? `<span class="muted" style="font-size:0.8rem;margin-left:0.5rem">If this isn't enough, open the full document.</span>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+const LOCKED_TASKS = ["Seller's Email", "Other Projects"];
+async function loadTaskAdmin(){
+  const wrap = document.getElementById("taskAdminList");
+  if(!wrap) return;
+  await loadTasks();
+  wrap.innerHTML = TASKS.map(t=>{
+    const locked = LOCKED_TASKS.includes(t);
+    return `<div class="archive-row" style="margin-top:0.3rem">
+      <div style="flex:1;min-width:170px;font-size:0.86rem">${esc(t)}${locked ? ' <span class="muted" style="font-size:0.76rem">locked</span>' : ""}</div>
+      ${locked ? "" : `<button class="btn btn-quiet btn-small" data-task-del="${esc(t)}">Remove</button>`}
+    </div>`;
+  }).join("");
+}
+async function addTaskItem(){
+  const name = document.getElementById("taskNewName").value.trim();
+  if(!name){ return; }
+  if(TASKS.some(t=>t.toLowerCase()===name.toLowerCase())){ alert("That task already exists."); return; }
+  // place above Other Projects (position 1000)
+  const {data: maxRow} = await sb.from("task_list").select("position").lt("position", 1000).order("position", {ascending:false}).limit(1);
+  const pos = (maxRow && maxRow[0] ? maxRow[0].position : 150) + 10;
+  const {error} = await sb.from("task_list").insert({name: name, position: pos});
+  if(error){ alert("Could not add task: " + error.message); return; }
+  document.getElementById("taskNewName").value = "";
+  await loadTaskAdmin();
+  if(me) renderAdmin();
+}
+async function removeTaskItem(name){
+  if(LOCKED_TASKS.includes(name)) return;
+  const {error} = await sb.from("task_list").delete().eq("name", name);
+  if(error){ alert("Could not remove task: " + error.message); return; }
+  await loadTaskAdmin();
+  if(me) renderAdmin();
+}
+let siteRules = [];
+async function loadSiteRules(){
+  const wrap = document.getElementById("siteRulesList");
+  if(!wrap) return;
+  const {data} = await sb.from("site_rules").select("*").order("productive", {ascending:false}).order("domain");
+  siteRules = data || [];
+  wrap.innerHTML = siteRules.map(r=>`
+    <div class="archive-row" style="margin-top:0.3rem">
+      <div style="flex:1;min-width:170px;font-size:0.86rem">${esc(r.domain)} <span class="${r.productive?"delta-up":"delta-down"}" style="font-size:0.78rem">${r.productive?"productive":"unproductive"}</span></div>
+      <button class="btn btn-quiet btn-small" data-rule-del="${esc(r.domain)}">Remove</button>
+    </div>`).join("") || `<div class="empty">No rules yet — everything counts as unproductive.</div>`;
+}
+async function addSiteRule(){
+  const d = document.getElementById("ruleNewDomain").value.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,"").replace(/^www\./,"");
+  const productive = document.getElementById("ruleNewKind").value === "true";
+  if(!d || !d.includes(".")){ alert("Enter a domain like example.com"); return; }
+  const {error} = await sb.from("site_rules").upsert({domain: d, productive: productive});
+  if(error){ alert("Could not save rule: " + error.message); return; }
+  document.getElementById("ruleNewDomain").value = "";
+  await loadSiteRules();
+  refreshDashboard();
+}
+async function delSiteRule(domain){
+  const {error} = await sb.from("site_rules").delete().eq("domain", domain);
+  if(error){ alert("Could not remove rule: " + error.message); return; }
+  await loadSiteRules();
+  refreshDashboard();
+}
+async function loadKbAdmin(){
+  const wrap = document.getElementById("kbAdminList");
+  if(!wrap) return;
+  if(!kbLoaded) await loadKbDocs();
+  wrap.innerHTML = kbDocsList.map(d=>`
+    <div class="archive-row" style="margin-top:0.35rem">
+      <div style="flex:1;min-width:200px">${esc(d.title)} <span class="muted">· ${esc(d.category)} · ${d.sync_error ? `<span style="color:var(--red)">sync failed</span>` : (d.chunk_count + " sections")}</span></div>
+      <button class="btn btn-quiet btn-small" data-kb-del="${d.id}">Remove</button>
+    </div>`).join("") || `<div class="empty">No documents yet.</div>`;
+}
+async function addKbDoc(){
+  const url = document.getElementById("kbNewUrl").value.trim();
+  const title = document.getElementById("kbNewTitle").value.trim();
+  const catv = document.getElementById("kbNewCat").value.trim() || "General";
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(!m || !title){ alert("Paste a Google Doc link and give it a title."); return; }
+  const {error} = await sb.from("kb_docs").insert({gdoc_id: m[1], title: title, category: catv});
+  if(error){ alert("Could not add document: " + error.message); return; }
+  document.getElementById("kbNewUrl").value = "";
+  document.getElementById("kbNewTitle").value = "";
+  kbLoaded = false;
+  await loadKbDocs();
+  await loadKbAdmin();
+  const msg = document.getElementById("settingsMsg");
+  msg.textContent = "Document added. Run “Sync knowledge base” to index it.";
+  setTimeout(()=>{ msg.textContent = ""; }, 6000);
+}
+async function delKbDoc(id){
+  const {error} = await sb.from("kb_docs").delete().eq("id", id);
+  if(error){ alert("Could not remove: " + error.message); return; }
+  kbLoaded = false;
+  await loadKbDocs();
+  await loadKbAdmin();
+}
+async function syncKb(){
+  const msg = document.getElementById("settingsMsg");
+  msg.textContent = "Syncing knowledge base… this can take a minute.";
+  const {data:{session}} = await sb.auth.getSession();
+  try{
+    const res = await fetch(SUPABASE_URL + "/functions/v1/kb-sync", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + (session ? session.access_token : ""),
+        "apikey": SUPABASE_ANON_KEY,
+        "Content-Type": "application/json"
+      },
+      body: "{}"
+    });
+    const j = await res.json();
+    if(j.ok){
+      const bad = (j.results||[]).filter(r=>!r.ok);
+      msg.textContent = "Knowledge base synced" + (bad.length ? " — " + bad.length + " document(s) unreachable." : ".");
+    } else {
+      msg.textContent = "";
+      alert("Sync failed: " + (j.error || res.status));
+    }
+  }catch(e){
+    msg.textContent = "";
+    alert("Could not reach the sync service.");
+  }
+  kbLoaded = false;
+  await loadKbDocs();
+  await loadKbAdmin();
+  setTimeout(()=>{ msg.textContent = ""; }, 8000);
+}
+
+function setSalesRange(type, btn){
+  document.querySelectorAll(".chip[data-srange]").forEach(c=>c.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("salesCustom").classList.toggle("hidden", type!=="custom");
+  const now = new Date();
+  const key = (d)=> d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+  if(type==="all") salesRange = null;
+  if(type==="month") salesRange = {from: key(now), to: key(now)};
+  if(type==="3mo"){
+    const start = new Date(now.getFullYear(), now.getMonth()-2, 1);
+    salesRange = {from: key(start), to: key(now)};
+  }
+  if(type!=="custom"){ renderSales(); renderMarkets(); }
+}
+
+/* ================= RANGE FILTERS ================= */
+function setRange(type, btn){
+  document.querySelectorAll(".chip[data-range]").forEach(c=>c.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("customRange").classList.toggle("hidden", type!=="custom");
+  const now = new Date();
+  if(type==="day") range = {type, from:startOfDay(now), to:endOfDay(now)};
+  if(type==="week"){
+    const d = new Date(now); const dow = (d.getDay()+6)%7; d.setDate(d.getDate()-dow);
+    range = {type, from:startOfDay(d), to:endOfDay(now)};
+  }
+  if(type==="month") range = {type, from:startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)), to:endOfDay(now)};
+  if(type!=="custom") refreshDashboard();
+}
+function applyCustom(){
+  const f = document.getElementById("fromDate").value, t = document.getElementById("toDate").value;
+  if(!f || !t) return;
+  const [fy,fm,fd] = f.split("-").map(Number), [ty,tm,td] = t.split("-").map(Number);
+  range = {type:"custom", from:startOfDay(new Date(fy,fm-1,fd)), to:endOfDay(new Date(ty,tm-1,td))};
+  refreshDashboard();
+}
+
+/* ================= EVENTS (delegation) ================= */
+document.addEventListener("click", (e)=>{
+  const mp = e.target.closest("[data-markprod]");
+  if(mp){ markSiteProductive(mp.dataset.markprod); return; }
+  const ss = e.target.closest("[data-ssec]");
+  if(ss){ salesSecOpen[ss.dataset.ssec] = !salesSecOpen[ss.dataset.ssec]; renderSales(); return; }
+  const ch = e.target.closest(".collapse-head");
+  if(ch){
+    const t = document.getElementById(ch.dataset.collapse);
+    if(t){ const hidden = t.classList.toggle("hidden"); ch.classList.toggle("open", !hidden); }
+    return;
+  }
+  const sChip = e.target.closest(".chip[data-srange]");
+  if(sChip){ setSalesRange(sChip.dataset.srange, sChip); return; }
+  if(e.target.id==="applySalesCustom"){
+    const f = document.getElementById("salesFrom").value, t = document.getElementById("salesTo").value;
+    if(f && t){ salesRange = {from: f, to: t}; renderSales(); renderMarkets(); }
+    return;
+  }
+  if(e.target.id==="kbSearchBtn"){ doKbSearch(); return; }
+  if(e.target.id==="goLoginKB"){ showView("admin"); return; }
+  const kc = e.target.closest("[data-kbcat]");
+  if(kc){ kbCat = kc.dataset.kbcat || null; renderKbCats(); if(document.getElementById("kbQuery").value.trim()) doKbSearch(); return; }
+  if(e.target.id==="kbAddBtn"){ addKbDoc(); return; }
+  if(e.target.id==="ruleAddBtn"){ addSiteRule(); return; }
+  if(e.target.id==="taskAddBtn"){ addTaskItem(); return; }
+  const td = e.target.closest("[data-task-del]");
+  if(td){ if(confirm("Remove the task \"" + td.dataset.taskDel + "\" from the daily list? Hours already logged under it are kept.")) removeTaskItem(td.dataset.taskDel); return; }
+  const rd = e.target.closest("[data-rule-del]");
+  if(rd){ delSiteRule(rd.dataset.ruleDel); return; }
+  if(e.target.id==="kbSyncBtn"){ syncKb(); return; }
+  const kd = e.target.closest("[data-kb-del]");
+  if(kd){ if(confirm("Remove this document from the knowledge base search?")) delKbDoc(+kd.dataset.kbDel); return; }
+  const nav = e.target.closest("nav button");
+  if(nav){ showView(nav.dataset.view); return; }
+  const chip = e.target.closest(".chip[data-range]");
+  if(chip){ setRange(chip.dataset.range, chip); return; }
+  if(e.target.id==="applyCustom"){ applyCustom(); return; }
+  if(e.target.id==="loginBtn"){ doLogin(); return; }
+  if(e.target.id==="forgotBtn"){ doForgot(); return; }
+  if(e.target.id==="savePwBtn"){ saveNewPassword(); return; }
+  if(e.target.id==="logoutBtn"){ doLogout(); return; }
+  if(e.target.id==="shiftSwitch"){ toggleShift(); return; }
+  if(e.target.id==="saveSettings"){ saveSettings(); return; }
+  if(e.target.id==="refreshSales"){ refreshSalesNow(); return; }
+  if(e.target.id==="resetBtn"){ resetAdminPassword(); return; }
+  if(e.target.id==="addAdminBtn"){
+    manageAdmin({action:"add",
+      name: document.getElementById("newName").value.trim(),
+      email: document.getElementById("newEmail").value.trim(),
+      password: document.getElementById("newPass").value.trim(),
+      tracked: document.getElementById("newTracked").value === "true"});
+    return;
+  }
+  const rmBtn = e.target.closest("[data-team-remove]");
+  if(rmBtn){
+    const a = admins.find(x=>x.id===rmBtn.dataset.teamRemove);
+    if(a && confirm("Remove " + a.name + "? They won't be able to log in and will disappear from dashboards. Their logged hours stay saved.")){
+      manageAdmin({action:"remove", admin_id: rmBtn.dataset.teamRemove});
+    }
+    return;
+  }
+  const pvBtn = e.target.closest("[data-team-priv]");
+  if(pvBtn){
+    const a = admins.find(x=>x.id===pvBtn.dataset.teamPriv);
+    if(a){ manageAdmin({action: a.privileged ? "revoke" : "nominate", admin_id: a.id}); }
+    return;
+  }
+  if(e.target.id==="goLogin"){ showView("admin"); return; }
+  const edBtn = e.target.closest("[data-team-edit]");
+  if(edBtn){
+    const sel = document.getElementById("resetWho");
+    if(sel){ sel.value = edBtn.dataset.teamEdit; }
+    const block = document.getElementById("resetEmail");
+    if(block){ block.closest("div").parentElement.scrollIntoView({behavior:"smooth", block:"center"}); setTimeout(()=>block.focus(), 350); }
+    return;
+  }
+  const tkBtn = e.target.closest("[data-team-track]");
+  if(tkBtn){
+    const a = admins.find(x=>x.id===tkBtn.dataset.teamTrack);
+    if(a){ manageAdmin({action:"set_tracked", admin_id: a.id, tracked: a.tracked===false}); }
+    return;
+  }
+  const reBtn = e.target.closest("[data-team-react]");
+  if(reBtn){ manageAdmin({action:"reactivate", admin_id: reBtn.dataset.teamReact}); return; }
+  if(e.target.id==="addArchive"){ archiveList.push({year:new Date().getFullYear()+1, url:""}); renderArchiveRows(); return; }
+  const starBtn = e.target.closest("[data-star]");
+  if(starBtn){ toggleStar(starBtn.dataset.star); return; }
+  const wa = e.target.closest("[data-wa]");
+  if(wa){ const k = wa.dataset.wa; if(waOpen.has(k)) waOpen.delete(k); else waOpen.add(k); renderDashboard(); return; }
+  if(e.target.id==="opAddBtn"){ addOtherProject(); return; }
+  const opDel = e.target.closest("[data-op-del]");
+  if(opDel){ delOtherProject(+opDel.dataset.opDel); return; }
+  const taskBtn = e.target.closest("[data-task]");
+  if(taskBtn){ toggleTask(taskBtn.dataset.task); return; }
+  const delBtn = e.target.closest("[data-arch-del]");
+  if(delBtn){ archiveList.splice(+delBtn.dataset.archDel,1); renderArchiveRows(); return; }
+  const cs = e.target.closest("[data-cardsec]");
+  if(cs){ const k = cs.dataset.cardsec; if(cardSecOpen.has(k)) cardSecOpen.delete(k); else cardSecOpen.add(k); renderDashboard(); return; }
+  const cardEl = e.target.closest("[data-admin-card]");
+  if(cardEl){
+    const id = cardEl.dataset.adminCard;
+    if(openCards.has(id)) openCards.delete(id); else openCards.add(id);
+    renderDashboard();
+    return;
+  }
+});
+document.addEventListener("keydown", (e)=>{
+  if((e.key==="Enter"||e.key===" ") && e.target.dataset && e.target.dataset.adminCard!==undefined){
+    e.preventDefault();
+    const id = e.target.dataset.adminCard;
+    if(openCards.has(id)) openCards.delete(id); else openCards.add(id);
+    renderDashboard();
+  }
+  if(e.key==="Enter" && e.target.id==="loginPass"){ doLogin(); }
+  if(e.key==="Enter" && e.target.id==="kbQuery"){ doKbSearch(); }
+  if(e.key==="Enter" && e.target.id==="opNewLabel"){ e.preventDefault(); addOtherProject(); }
+});
+
+/* ================= TICKING + POLLING ================= */
+setInterval(()=>{ // 1s: lightweight live timer text only (no full re-renders)
+  if(document.hidden) return;
+  try{
+    if(currentView==="admin" && me){
+      const st = liveStates[me.id];
+      if(st && st.on_shift){
+        const from = startOfDay(new Date()), to = endOfDay(new Date());
+        const agg = aggregate(me.id, mySessions, from, to);
+        document.getElementById("todayTotal").textContent = fmt(agg.total);
+        document.querySelectorAll("[data-task-row]").forEach(row=>{
+          const t = row.dataset.taskRow;
+          const el = row.querySelector(".task-time");
+          if(el) el.textContent = fmt(agg.perTask[t]||0);
+        });
+      }
+    }
+  }catch(e){ /* never let the ticker die */ }
+}, 1000);
+setInterval(()=>{ sendHeartbeat(); }, 60000); // presence heartbeat every minute while on shift
+async function reportTabSeen(){
+  if(!me || me.tracked === false) return;
+  const st = liveStates[me.id];
+  if(!st || !st.on_shift) return;
+  try{
+    await sb.from("live_state").update({tab_seen_at: new Date().toISOString()}).eq("admin_id", me.id);
+  }catch(e){ /* best effort */ }
+}
+setInterval(()=>{ reportTabSeen(); }, 45000); // tab proves it is open (runs even when hidden)
+setInterval(()=>{ // 30s: refetch shared data so everyone stays in sync (paused while tab is hidden)
+  if(document.hidden) return;
+  if(currentView==="dash") refreshDashboard();
+  if(currentView==="admin" && me) refreshAdmin();
+}, 30000);
+document.addEventListener("visibilitychange", ()=>{ // catch up instantly when the tab returns
+  if(document.hidden) return;
+  lastTabActivity = Date.now();
+  sendHeartbeat();
+  reportTabSeen();
+  if(currentView==="dash") refreshDashboard();
+  if(currentView==="admin" && me) refreshAdmin();
+});
+setInterval(()=>{ loadSales(false); }, 15*60000); // sales every 15 min
+
+/* ================= INIT ================= */
+["mousemove","keydown","mousedown","scroll","touchstart"].forEach(ev=>
+  document.addEventListener(ev, ()=>{ lastTabActivity = Date.now(); }, {passive:true}));
+(async function init(){
+  const now = new Date(), weekAgo = new Date(Date.now()-6*86400000);
+  document.getElementById("toDate").value = dateKey(now.getTime());
+  document.getElementById("fromDate").value = dateKey(weekAgo.getTime());
+  const mkey = (d)=> d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+  document.getElementById("salesTo").value = mkey(now);
+  document.getElementById("salesFrom").value = mkey(new Date(now.getFullYear(), 0, 1));
+  try{
+    await loadAdmins();
+    await initAuth();
+  }catch(e){
+    document.getElementById("dashError").innerHTML =
+      `<div class="error-banner">Could not reach the team database. Check your internet connection and refresh.</div>`;
+  }
+  showView("dash");
+  loadSales(false);
+})();
+</script>
+</body>
+</html>
